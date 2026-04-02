@@ -109,6 +109,65 @@ function NewApplication() {
 						/>
 					</div>
 				</section>
+
+				{/* Checklist / Documents */}
+				<section>
+					<h2 className='text-lg font-semibold mb-4 text-gray-800'>
+						Checklist / Documents
+					</h2>
+
+					<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+						<label className='flex items-center gap-2'>
+							<input type='checkbox' />
+							Loan Application Form
+						</label>
+
+						<label className='flex items-center gap-2'>
+							<input type='checkbox' />
+							Authorization for Salary Deduction
+						</label>
+
+						<label className='flex items-center gap-2'>
+							<input type='checkbox' />
+							Latest Payslip
+						</label>
+
+						<label className='flex items-center gap-2'>
+							<input type='checkbox' />
+							DepEd ID
+						</label>
+
+						<label className='flex items-center gap-2'>
+							<input type='checkbox' />
+							Approved Appointment
+						</label>
+
+						<label className='flex items-center gap-2'>
+							<input type='checkbox' />
+							Co-maker Documents
+						</label>
+
+						<label className='flex items-center gap-2'>
+							<input type='checkbox' />
+							Account Number Verified
+						</label>
+
+						<label className='flex items-center gap-2'>
+							<input type='checkbox' />
+							SOA (for Renewal only)
+						</label>
+
+						<label className='flex items-center gap-2'>
+							<input type='checkbox' />
+							No UNDE Loan
+						</label>
+
+						<label className='flex items-center gap-2'>
+							<input type='checkbox' />
+							Authorization Form Complete
+						</label>
+					</div>
+				</section>
 			</div>
 		</main>
 	);
