@@ -48,9 +48,26 @@ function NewApplication() {
 							className='border p-2 rounded'
 						/>
 
+						{/* Co-maker Section */}
+						<h3 className='col-span-2 font-semibold text-gray-700 mt-4'>
+							Co-maker Information
+						</h3>
+
 						<input
 							type='text'
 							placeholder='Co-maker Name'
+							className='border p-2 rounded'
+						/>
+
+						<input
+							type='text'
+							placeholder='Co-maker Employee Number'
+							className='border p-2 rounded'
+						/>
+
+						<input
+							type='text'
+							placeholder='Co-maker Contact Number'
 							className='border p-2 rounded'
 						/>
 
