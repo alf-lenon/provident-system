@@ -222,6 +222,26 @@ function NewApplication() {
 								/>
 							</div>
 						</section>
+
+						{/* Result */}
+						<section>
+							<h2 className='text-lg font-semibold mb-4 text-gray-800'>
+								Result
+							</h2>
+
+							<div className='bg-gray-50 p-4 rounded-lg space-y-2'>
+								<p>
+									<strong>Final Loan Granted:</strong> ₱0.00
+								</p>
+								<p>
+									<strong>NPAD:</strong> ₱0.00
+								</p>
+
+								<p className='font-semibold text-gray-700'>Status: Pending</p>
+
+								<p className='text-sm text-gray-600'>Reason: —</p>
+							</div>
+						</section>
 					</div>
 				</section>
 			</div>
