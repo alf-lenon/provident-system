@@ -183,6 +183,45 @@ function NewApplication() {
 							<input type='checkbox' />
 							Authorization Form Complete
 						</label>
+
+						{/* Evaluation */}
+						<section>
+							<h2 className='text-lg font-semibold mb-4 text-gray-800'>
+								Evaluation
+							</h2>
+
+							<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+								<input
+									type='number'
+									placeholder='Net Pay'
+									className='border p-2 rounded'
+								/>
+
+								<input
+									type='number'
+									placeholder='New Deduction'
+									className='border p-2 rounded'
+								/>
+
+								<input
+									type='number'
+									placeholder='Existing Balance (Renewal only)'
+									className='border p-2 rounded'
+								/>
+
+								<input
+									type='number'
+									placeholder='Existing Deduction (Renewal only)'
+									className='border p-2 rounded'
+								/>
+
+								<input
+									type='number'
+									placeholder='% Principal Paid (Renewal only)'
+									className='border p-2 rounded'
+								/>
+							</div>
+						</section>
 					</div>
 				</section>
 			</div>
