@@ -1,4 +1,17 @@
+import { useState } from 'react';
+
 function NewApplication() {
+	const [formData, setFormData] = useState({
+		borrower: {
+			fullName: '',
+			employeeNumber: '',
+			school: '',
+			position: '',
+			salaryGrade: '',
+			salaryStep: '',
+		},
+	});
+
 	return (
 		<main className='min-h-screen bg-gray-100 p-6'>
 			{/* Header */}
@@ -22,37 +35,104 @@ function NewApplication() {
 							type='text'
 							placeholder='Full Name'
 							className='border p-2 rounded'
+							value={formData.borrower.fullName}
+							onChange={
+								(event) =>
+									setFormData({
+										...formData,
+										borrower: {
+											...formData.borrower, // ...formData means = Keep the other values unchanged.
+											fullName: event.target.value,
+										},
+									}) // ...formData means = Keep the other values unchanged.
+							}
 						/>
+						<p>{formData.borrower.fullName}</p>
 
 						<input
 							type='text'
 							placeholder='Employee Number'
 							className='border p-2 rounded'
+							value={formData.borrower.employeeNumber}
+							onChange={(event) =>
+								setFormData({
+									...formData,
+									borrower: {
+										...formData.borrower,
+										employeeNumber: event.target.value,
+									},
+								})
+							}
 						/>
+						<p>{formData.borrower.employeeNumber}</p>
 
 						<input
 							type='text'
 							placeholder='School / Office'
 							className='border p-2 rounded'
+							value={formData.borrower.school}
+							onChange={(event) =>
+								setFormData({
+									...formData,
+									borrower: {
+										...formData.borrower,
+										school: event.target.value,
+									},
+								})
+							}
 						/>
+						<p>{formData.borrower.school}</p>
 
 						<input
 							type='text'
 							placeholder='Position'
 							className='border p-2 rounded'
+							value={formData.borrower.position}
+							onChange={(event) =>
+								setFormData({
+									...formData,
+									borrower: {
+										...formData.borrower,
+										position: event.target.value,
+									},
+								})
+							}
 						/>
+						<p>{formData.borrower.position}</p>
 
 						<input
 							type='number'
 							placeholder='Salary Grade'
 							className='border p-2 rounded'
+							value={formData.borrower.salaryGrade}
+							onChange={(event) =>
+								setFormData({
+									...formData,
+									borrower: {
+										...formData.borrower,
+										salaryGrade: event.target.value,
+									},
+								})
+							}
 						/>
+						<p>{formData.borrower.salaryGrade}</p>
 
 						<input
 							type='number'
 							placeholder='Salary Step'
 							className='border p-2 rounded'
+							value={formData.borrower.salaryStep}
+							onChange={(event) =>
+								setFormData({
+									...formData,
+									borrower: {
+										...formData.borrower,
+										salaryStep: event.target.value,
+									},
+								})
+							}
 						/>
+						<p>{formData.borrower.salaryStep}</p>
 
 						{/* Co-maker Section */}
 						<h3 className='col-span-2 font-semibold text-gray-700 mt-4'>
