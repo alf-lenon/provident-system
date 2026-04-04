@@ -1,12 +1,37 @@
 import { useState } from 'react';
 
+type FormData = {
+	borrower: {
+		fullName: string;
+		employeeNumber: string;
+		school: string;
+		position: string;
+		salaryGrade: string;
+		salaryStep: string;
+	};
+	coMaker: {
+		name: string;
+		employeeNumber: string;
+		contactNumber: string;
+		salaryGrade: string;
+		salaryStep: string;
+	};
+}; // TypeScript
+
 function NewApplication() {
-	const [formData, setFormData] = useState({
+	const [formData, setFormData] = useState<FormData>({
 		borrower: {
 			fullName: '',
 			employeeNumber: '',
 			school: '',
 			position: '',
+			salaryGrade: '',
+			salaryStep: '',
+		},
+		coMaker: {
+			name: '',
+			employeeNumber: '',
+			contactNumber: '',
 			salaryGrade: '',
 			salaryStep: '',
 		},
@@ -143,30 +168,86 @@ function NewApplication() {
 							type='text'
 							placeholder='Co-maker Name'
 							className='border p-2 rounded'
+							value={formData.coMaker.name}
+							onChange={(event) =>
+								setFormData({
+									...formData,
+									coMaker: {
+										...formData.coMaker,
+										name: event.target.value,
+									},
+								})
+							}
 						/>
+						<p>{formData.coMaker.name}</p>
 
 						<input
 							type='text'
 							placeholder='Co-maker Employee Number'
 							className='border p-2 rounded'
+							value={formData.coMaker.employeeNumber}
+							onChange={(event) =>
+								setFormData({
+									...formData,
+									coMaker: {
+										...formData.coMaker,
+										employeeNumber: event.target.value,
+									},
+								})
+							}
 						/>
+						<p>{formData.coMaker.employeeNumber}</p>
 
 						<input
 							type='text'
 							placeholder='Co-maker Contact Number'
 							className='border p-2 rounded'
+							value={formData.coMaker.contactNumber}
+							onChange={(event) =>
+								setFormData({
+									...formData,
+									coMaker: {
+										...formData.coMaker,
+										contactNumber: event.target.value,
+									},
+								})
+							}
 						/>
+						<p>{formData.coMaker.contactNumber}</p>
 
 						<input
 							type='number'
 							placeholder='Salary Grade'
 							className='border p-2 rounded'
+							value={formData.coMaker.salaryGrade}
+							onChange={(event) =>
+								setFormData({
+									...formData,
+									coMaker: {
+										...formData.coMaker,
+										salaryGrade: event.target.value,
+									},
+								})
+							}
 						/>
+						<p>{formData.coMaker.salaryGrade}</p>
+
 						<input
 							type='number'
 							placeholder='Salary Step'
 							className='border p-2 rounded'
+							value={formData.coMaker.salaryStep}
+							onChange={(event) =>
+								setFormData({
+									...formData,
+									coMaker: {
+										...formData.coMaker,
+										salaryStep: event.target.value,
+									},
+								})
+							}
 						/>
+						<p>{formData.coMaker.salaryStep}</p>
 					</div>
 				</section>
 
