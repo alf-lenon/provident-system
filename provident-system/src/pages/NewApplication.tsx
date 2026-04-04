@@ -44,7 +44,13 @@ function NewApplication() {
 
 						<input
 							type='number'
-							placeholder='Borrower Salary'
+							placeholder='Salary Grade'
+							className='border p-2 rounded'
+						/>
+
+						<input
+							type='number'
+							placeholder='Salary Step'
 							className='border p-2 rounded'
 						/>
 
@@ -73,7 +79,12 @@ function NewApplication() {
 
 						<input
 							type='number'
-							placeholder='Co-maker Salary'
+							placeholder='Salary Grade'
+							className='border p-2 rounded'
+						/>
+						<input
+							type='number'
+							placeholder='Salary Step'
 							className='border p-2 rounded'
 						/>
 					</div>
@@ -95,13 +106,21 @@ function NewApplication() {
 						</select>
 
 						{/* Purpose */}
-						<select className='border p-2 rounded'>
-							<option value=''>Select Purpose</option>
-							<option>Educational</option>
-							<option>Medical</option>
-							<option>House Repair</option>
-							<option>Others</option>
-						</select>
+						<div>
+							<select className='border p-2 rounded'>
+								<option value=''>Select Purpose</option>
+
+								<option>Educational</option>
+								<option>Medical</option>
+								<option>House Repair</option>
+								<option>Others</option>
+							</select>
+
+							<p className='text-sm text-gray-500'>
+								Ensure purpose matches supporting documents and loan amount is
+								reasonable.
+							</p>
+						</div>
 
 						<input
 							type='number'
@@ -183,6 +202,33 @@ function NewApplication() {
 							<input type='checkbox' />
 							Authorization Form Complete
 						</label>
+
+						<label className='flex items-center gap-2'>
+							<input type='checkbox' />
+							Payslip is Readable
+						</label>
+
+						<label className='flex items-center gap-2'>
+							<input type='checkbox' />
+							Payslip is Original
+						</label>
+
+						<label className='flex items-center gap-2'>
+							<input type='checkbox' />
+							Purpose Attachment Complete
+						</label>
+
+						<label className='flex items-center gap-2'>
+							<input type='checkbox' />
+							Photocopy of ID
+						</label>
+
+						<label className='flex items-center gap-2'>
+							<input type='checkbox' />
+							Photocopy of ATM
+						</label>
+
+						<section />
 
 						{/* Evaluation */}
 						<section>
