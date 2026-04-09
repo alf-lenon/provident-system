@@ -23,6 +23,13 @@ type FormData = {
 		// Fields
 		loanAmount: string;
 		accountNumber: string;
+		loanType: string;
+	};
+
+	evaluation: {
+		netPay: string;
+		newDeduction: string;
+		existingDeduction: string;
 	};
 };
 
@@ -46,6 +53,12 @@ function NewApplication() {
 		loan: {
 			loanAmount: '',
 			accountNumber: '',
+			loanType: '',
+		},
+		evaluation: {
+			netPay: '',
+			newDeduction: '',
+			existingDeduction: '',
 		},
 	});
 
@@ -85,15 +98,44 @@ function NewApplication() {
 		}));
 	};
 
+	const handleEvaluationChange = (
+		field: keyof FormData['evaluation'],
+		value: string,
+	) => {
+		setFormData((prev) => ({
+			...prev,
+			evaluation: {
+				...prev.evaluation,
+				[field]: value,
+			},
+		}));
+	};
+
 	const borrowerGrade = Number(formData.borrower.salaryGrade);
 	const borrowerStep = Number(formData.borrower.salaryStep);
 
 	const coMakerGrade = Number(formData.coMaker.salaryGrade);
 	const coMakerStep = Number(formData.coMaker.salaryStep);
 
+	// Co maker validation
 	const isCoMakerValid =
 		coMakerGrade > borrowerGrade ||
 		(coMakerGrade === borrowerGrade && coMakerStep >= borrowerStep);
+
+	const netPay = Number(formData.evaluation.netPay);
+	const newDeduction = Number(formData.evaluation.newDeduction);
+	const existingDeduction = Number(formData.evaluation.existingDeduction);
+
+	// Renewal
+	const isRenewal = formData.loan.loanType === 'Renewal';
+
+	// Net Pay After Deduction
+	const netPayAfterDeduction = isRenewal
+		? netPay - newDeduction + existingDeduction
+		: netPay - newDeduction;
+
+	// NPAD Validation
+	const isNPADValid = netPayAfterDeduction >= 5000;
 
 	return (
 		<main className='min-h-screen bg-gray-100 p-6'>
@@ -235,7 +277,11 @@ function NewApplication() {
 
 					<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
 						{/* Loan Type */}
-						<select className='border p-2 rounded'>
+						<select
+							className='border p-2 rounded'
+							value={formData.loan.loanType}
+							onChange={(e) => handleLoanChange('loanType', e.target.value)}
+						>
 							<option value=''>Select Loan Type</option>
 							<option>New</option>
 							<option>Renewal</option>
@@ -384,31 +430,48 @@ function NewApplication() {
 									type='number'
 									placeholder='Net Pay'
 									className='border p-2 rounded'
+									value={formData.evaluation.netPay}
+									onChange={(e) =>
+										handleEvaluationChange('netPay', e.target.value)
+									}
 								/>
 
 								<input
 									type='number'
 									placeholder='New Deduction'
 									className='border p-2 rounded'
+									value={formData.evaluation.newDeduction}
+									onChange={(e) =>
+										handleEvaluationChange('newDeduction', e.target.value)
+									}
 								/>
-
 								<input
 									type='number'
 									placeholder='Existing Balance (Renewal only)'
 									className='border p-2 rounded'
 								/>
-
 								<input
 									type='number'
 									placeholder='Existing Deduction (Renewal only)'
 									className='border p-2 rounded'
+									value={formData.evaluation.existingDeduction}
+									onChange={(e) =>
+										handleEvaluationChange('existingDeduction', e.target.value)
+									}
 								/>
-
 								<input
 									type='number'
 									placeholder='% Principal Paid (Renewal only)'
 									className='border p-2 rounded'
 								/>
+
+								<p className='text-blue-600'>
+									Net Pay After Deduction: ₱{netPayAfterDeduction}
+								</p>
+
+								<p className={isNPADValid ? 'text-green-600' : 'text-red-600'}>
+									NPAD Status: {isNPADValid ? 'Valid' : 'Below ₱5,000'}
+								</p>
 							</div>
 						</section>
 
