@@ -31,6 +31,10 @@ type FormData = {
 		newDeduction: string;
 		existingDeduction: string;
 	};
+
+	flags: {
+		hasUndeLoan: boolean; // true or false
+	};
 };
 
 function NewApplication() {
@@ -59,6 +63,10 @@ function NewApplication() {
 			netPay: '',
 			newDeduction: '',
 			existingDeduction: '',
+		},
+
+		flags: {
+			hasUndeLoan: false,
 		},
 	});
 
@@ -111,6 +119,16 @@ function NewApplication() {
 		}));
 	};
 
+	const handleFlagChange = (field: keyof FormData['flags'], value: boolean) => {
+		setFormData((prev) => ({
+			...prev,
+			flags: {
+				...prev.flags,
+				[field]: value,
+			},
+		}));
+	};
+
 	const borrowerGrade = Number(formData.borrower.salaryGrade);
 	const borrowerStep = Number(formData.borrower.salaryStep);
 
@@ -136,6 +154,9 @@ function NewApplication() {
 
 	// NPAD Validation
 	const isNPADValid = netPayAfterDeduction >= 5000;
+
+	// UNDE Loan
+	const isUndeValid = !formData.flags.hasUndeLoan;
 
 	return (
 		<main className='min-h-screen bg-gray-100 p-6'>
@@ -417,6 +438,21 @@ function NewApplication() {
 							Photocopy of ATM
 						</label>
 
+						<label className='flex items-center gap-2'>
+							<input
+								type='checkbox'
+								checked={formData.flags.hasUndeLoan}
+								onChange={(e) =>
+									handleFlagChange('hasUndeLoan', e.target.checked)
+								}
+							/>
+							Has UNDE Loan
+						</label>
+
+						<p className={isUndeValid ? 'text-green-600' : 'text-red-600'}>
+							UNDE Status: {isUndeValid ? 'No UNDE' : 'Has UNDE Loan'}
+						</p>
+
 						<section />
 
 						{/* Evaluation */}
@@ -435,6 +471,14 @@ function NewApplication() {
 										handleEvaluationChange('netPay', e.target.value)
 									}
 								/>
+
+								<p className='text-blue-600'>
+									Net Pay After Deduction: ₱{netPayAfterDeduction}
+								</p>
+
+								<p className={isNPADValid ? 'text-green-600' : 'text-red-600'}>
+									NPAD Status: {isNPADValid ? 'Valid' : 'Below ₱5,000'}
+								</p>
 
 								<input
 									type='number'
@@ -464,14 +508,6 @@ function NewApplication() {
 									placeholder='% Principal Paid (Renewal only)'
 									className='border p-2 rounded'
 								/>
-
-								<p className='text-blue-600'>
-									Net Pay After Deduction: ₱{netPayAfterDeduction}
-								</p>
-
-								<p className={isNPADValid ? 'text-green-600' : 'text-red-600'}>
-									NPAD Status: {isNPADValid ? 'Valid' : 'Below ₱5,000'}
-								</p>
 							</div>
 						</section>
 
