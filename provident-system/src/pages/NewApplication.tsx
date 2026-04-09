@@ -155,8 +155,18 @@ function NewApplication() {
 	// NPAD Validation
 	const isNPADValid = netPayAfterDeduction >= 5000;
 
-	// UNDE Loan
+	// UNDE Loan Validation
 	const isUndeValid = !formData.flags.hasUndeLoan;
+
+	const isRejected = !isCoMakerValid || !isNPADValid || !isUndeValid;
+
+	let status = 'Pending';
+
+	if (isRejected) {
+		status = 'Rejected';
+	} else {
+		status = 'Ready for Processing';
+	}
 
 	return (
 		<main className='min-h-screen bg-gray-100 p-6'>
@@ -524,10 +534,25 @@ function NewApplication() {
 								<p>
 									<strong>NPAD:</strong> ₱0.00
 								</p>
-
 								<p className='font-semibold text-gray-700'>Status: Pending</p>
-
 								<p className='text-sm text-gray-600'>Reason: —</p>
+								<p
+									className={
+										status === 'Rejected'
+											? 'text-red-600 font-semibold'
+											: 'text-green-600 font-semibold'
+									}
+								>
+									Status: {status}
+								</p>
+
+								<ul className='text-sm text-gray-600 mt-2'>
+									{!isCoMakerValid && <li>• Co-maker salary is not valid</li>}
+									{!isNPADValid && (
+										<li>• Net Pay After Deduction is below ₱5,000</li>
+									)}
+									{!isUndeValid && <li>• Borrower has UNDE loan</li>}
+								</ul>
 							</div>
 						</section>
 					</div>
