@@ -1,7 +1,9 @@
 import { useState } from 'react';
 
 type FormData = {
+	// TypeScript
 	borrower: {
+		// Fields
 		fullName: string;
 		employeeNumber: string;
 		school: string;
@@ -10,13 +12,19 @@ type FormData = {
 		salaryStep: string;
 	};
 	coMaker: {
+		// Fields
 		name: string;
 		employeeNumber: string;
 		contactNumber: string;
 		salaryGrade: string;
 		salaryStep: string;
 	};
-}; // TypeScript
+	loan: {
+		// Fields
+		loanAmount: string;
+		accountNumber: string;
+	};
+};
 
 function NewApplication() {
 	const [formData, setFormData] = useState<FormData>({
@@ -35,7 +43,57 @@ function NewApplication() {
 			salaryGrade: '',
 			salaryStep: '',
 		},
+		loan: {
+			loanAmount: '',
+			accountNumber: '',
+		},
 	});
+
+	const handleBorrowerChange = (
+		field: keyof FormData['borrower'],
+		value: string,
+	) => {
+		setFormData((prev) => ({
+			...prev,
+			borrower: {
+				...prev.borrower,
+				[field]: value,
+			},
+		}));
+	};
+
+	const handleCoMakerChange = (
+		field: keyof FormData['coMaker'],
+		value: string,
+	) => {
+		setFormData((prev) => ({
+			...prev,
+			coMaker: {
+				...prev.coMaker,
+				[field]: value,
+			},
+		}));
+	};
+
+	const handleLoanChange = (field: keyof FormData['loan'], value: string) => {
+		setFormData((prev) => ({
+			...prev,
+			loan: {
+				...prev.loan,
+				[field]: value,
+			},
+		}));
+	};
+
+	const borrowerGrade = Number(formData.borrower.salaryGrade);
+	const borrowerStep = Number(formData.borrower.salaryStep);
+
+	const coMakerGrade = Number(formData.coMaker.salaryGrade);
+	const coMakerStep = Number(formData.coMaker.salaryStep);
+
+	const isCoMakerValid =
+		coMakerGrade > borrowerGrade ||
+		(coMakerGrade === borrowerGrade && coMakerStep >= borrowerStep);
 
 	return (
 		<main className='min-h-screen bg-gray-100 p-6'>
@@ -61,103 +119,54 @@ function NewApplication() {
 							placeholder='Full Name'
 							className='border p-2 rounded'
 							value={formData.borrower.fullName}
-							onChange={
-								(event) =>
-									setFormData({
-										...formData,
-										borrower: {
-											...formData.borrower, // ...formData means = Keep the other values unchanged.
-											fullName: event.target.value,
-										},
-									}) // ...formData means = Keep the other values unchanged.
-							}
+							onChange={(e) => handleBorrowerChange('fullName', e.target.value)}
 						/>
-						<p>{formData.borrower.fullName}</p>
 
 						<input
 							type='text'
 							placeholder='Employee Number'
 							className='border p-2 rounded'
 							value={formData.borrower.employeeNumber}
-							onChange={(event) =>
-								setFormData({
-									...formData,
-									borrower: {
-										...formData.borrower,
-										employeeNumber: event.target.value,
-									},
-								})
+							onChange={(e) =>
+								handleBorrowerChange('employeeNumber', e.target.value)
 							}
 						/>
-						<p>{formData.borrower.employeeNumber}</p>
 
 						<input
 							type='text'
 							placeholder='School / Office'
 							className='border p-2 rounded'
 							value={formData.borrower.school}
-							onChange={(event) =>
-								setFormData({
-									...formData,
-									borrower: {
-										...formData.borrower,
-										school: event.target.value,
-									},
-								})
-							}
+							onChange={(e) => handleBorrowerChange('school', e.target.value)}
 						/>
-						<p>{formData.borrower.school}</p>
 
 						<input
 							type='text'
 							placeholder='Position'
 							className='border p-2 rounded'
 							value={formData.borrower.position}
-							onChange={(event) =>
-								setFormData({
-									...formData,
-									borrower: {
-										...formData.borrower,
-										position: event.target.value,
-									},
-								})
-							}
+							onChange={(e) => handleBorrowerChange('position', e.target.value)}
 						/>
-						<p>{formData.borrower.position}</p>
 
 						<input
 							type='number'
 							placeholder='Salary Grade'
 							className='border p-2 rounded'
 							value={formData.borrower.salaryGrade}
-							onChange={(event) =>
-								setFormData({
-									...formData,
-									borrower: {
-										...formData.borrower,
-										salaryGrade: event.target.value,
-									},
-								})
+							onChange={(e) =>
+								handleBorrowerChange('salaryGrade', e.target.value)
 							}
 						/>
-						<p>{formData.borrower.salaryGrade}</p>
 
 						<input
 							type='number'
 							placeholder='Salary Step'
 							className='border p-2 rounded'
 							value={formData.borrower.salaryStep}
-							onChange={(event) =>
-								setFormData({
-									...formData,
-									borrower: {
-										...formData.borrower,
-										salaryStep: event.target.value,
-									},
-								})
+							onChange={(e) =>
+								handleBorrowerChange('salaryStep', e.target.value)
 							}
 						/>
-						<p>{formData.borrower.salaryStep}</p>
 
 						{/* Co-maker Section */}
 						<h3 className='col-span-2 font-semibold text-gray-700 mt-4'>
@@ -169,85 +178,52 @@ function NewApplication() {
 							placeholder='Co-maker Name'
 							className='border p-2 rounded'
 							value={formData.coMaker.name}
-							onChange={(event) =>
-								setFormData({
-									...formData,
-									coMaker: {
-										...formData.coMaker,
-										name: event.target.value,
-									},
-								})
-							}
+							onChange={(e) => handleCoMakerChange('name', e.target.value)}
 						/>
-						<p>{formData.coMaker.name}</p>
 
 						<input
 							type='text'
 							placeholder='Co-maker Employee Number'
 							className='border p-2 rounded'
 							value={formData.coMaker.employeeNumber}
-							onChange={(event) =>
-								setFormData({
-									...formData,
-									coMaker: {
-										...formData.coMaker,
-										employeeNumber: event.target.value,
-									},
-								})
+							onChange={(e) =>
+								handleCoMakerChange('employeeNumber', e.target.value)
 							}
 						/>
-						<p>{formData.coMaker.employeeNumber}</p>
 
 						<input
 							type='text'
 							placeholder='Co-maker Contact Number'
 							className='border p-2 rounded'
 							value={formData.coMaker.contactNumber}
-							onChange={(event) =>
-								setFormData({
-									...formData,
-									coMaker: {
-										...formData.coMaker,
-										contactNumber: event.target.value,
-									},
-								})
+							onChange={(e) =>
+								handleCoMakerChange('contactNumber', e.target.value)
 							}
 						/>
-						<p>{formData.coMaker.contactNumber}</p>
 
 						<input
 							type='number'
 							placeholder='Salary Grade'
 							className='border p-2 rounded'
 							value={formData.coMaker.salaryGrade}
-							onChange={(event) =>
-								setFormData({
-									...formData,
-									coMaker: {
-										...formData.coMaker,
-										salaryGrade: event.target.value,
-									},
-								})
+							onChange={(e) =>
+								handleCoMakerChange('salaryGrade', e.target.value)
 							}
 						/>
-						<p>{formData.coMaker.salaryGrade}</p>
 
 						<input
 							type='number'
 							placeholder='Salary Step'
 							className='border p-2 rounded'
 							value={formData.coMaker.salaryStep}
-							onChange={(event) =>
-								setFormData({
-									...formData,
-									coMaker: {
-										...formData.coMaker,
-										salaryStep: event.target.value,
-									},
-								})
+							onChange={(e) =>
+								handleCoMakerChange('salaryStep', e.target.value)
 							}
 						/>
-						<p>{formData.coMaker.salaryStep}</p>
+
+						<p className='text-sm text-blue-600'>
+							Co-Maker valid: {isCoMakerValid ? 'Yes' : 'No'}
+						</p>
 					</div>
 				</section>
 
@@ -287,6 +263,8 @@ function NewApplication() {
 							type='number'
 							placeholder='Requested Loan Amount'
 							className='border p-2 rounded'
+							value={formData.loan.loanAmount}
+							onChange={(e) => handleLoanChange('loanAmount', e.target.value)}
 						/>
 
 						{/* Term */}
@@ -303,6 +281,10 @@ function NewApplication() {
 							type='text'
 							placeholder='Account Number'
 							className='border p-2 rounded'
+							value={formData.loan.accountNumber}
+							onChange={(e) =>
+								handleLoanChange('accountNumber', e.target.value)
+							}
 						/>
 					</div>
 				</section>
