@@ -35,6 +35,11 @@ type FormData = {
 	flags: {
 		hasUndeLoan: boolean; // true or false
 	};
+	checklist: {
+		soa: boolean;
+		payslipReadable: boolean;
+		authorizationFormComplete: boolean;
+	};
 };
 
 function NewApplication() {
@@ -67,6 +72,11 @@ function NewApplication() {
 
 		flags: {
 			hasUndeLoan: false,
+		},
+		checklist: {
+			soa: false,
+			payslipReadable: false,
+			authorizationFormComplete: false,
 		},
 	});
 
@@ -129,6 +139,19 @@ function NewApplication() {
 		}));
 	};
 
+	const handleCheckListChange = (
+		field: keyof FormData['checklist'],
+		value: boolean,
+	) => {
+		setFormData((prev) => ({
+			...prev,
+			checklist: {
+				...prev.checklist,
+				[field]: value,
+			},
+		}));
+	};
+
 	const borrowerGrade = Number(formData.borrower.salaryGrade);
 	const borrowerStep = Number(formData.borrower.salaryStep);
 
@@ -167,7 +190,11 @@ function NewApplication() {
 
 	// Check fields one by one
 	if (!formData.borrower.fullName) {
-		correctionReasons.push('Missing Full Name');
+		correctionReasons.push("Missing Borrower's Full Name");
+	}
+
+	if (!formData.coMaker.name) {
+		correctionReasons.push("Missing Co-Maker's Full Name");
 	}
 
 	if (!formData.loan.loanAmount) {
@@ -176,6 +203,30 @@ function NewApplication() {
 
 	if (!formData.loan.accountNumber) {
 		correctionReasons.push('Missing Account Number');
+	}
+
+	if (!formData.borrower.employeeNumber) {
+		correctionReasons.push("Missing Borrower's Employee Number");
+	}
+
+	if (!formData.coMaker.employeeNumber) {
+		correctionReasons.push("Missing Co-Maker's Employee Number");
+	}
+
+	if (!formData.loan.loanType) {
+		correctionReasons.push('Missing Loan Type');
+	}
+
+	if (!formData.checklist.soa && formData.loan.loanType === 'Renewal') {
+		correctionReasons.push('Soa is required for renewal');
+	}
+
+	if (!formData.checklist.payslipReadable) {
+		correctionReasons.push('Payslip is not readable');
+	}
+
+	if (!formData.checklist.authorizationFormComplete) {
+		correctionReasons.push('Authorization form is not complete');
 	}
 
 	const hasCorrections = correctionReasons.length > 0;
@@ -430,7 +481,11 @@ function NewApplication() {
 						</label>
 
 						<label className='flex items-center gap-2'>
-							<input type='checkbox' />
+							<input
+								type='checkbox'
+								checked={formData.checklist.soa}
+								onChange={(e) => handleCheckListChange('soa', e.target.checked)}
+							/>
 							SOA (for Renewal only)
 						</label>
 
@@ -440,12 +495,27 @@ function NewApplication() {
 						</label>
 
 						<label className='flex items-center gap-2'>
-							<input type='checkbox' />
+							<input
+								type='checkbox'
+								checked={formData.checklist.authorizationFormComplete}
+								onChange={(e) =>
+									handleCheckListChange(
+										'authorizationFormComplete',
+										e.target.checked,
+									)
+								}
+							/>
 							Authorization Form Complete
 						</label>
 
 						<label className='flex items-center gap-2'>
-							<input type='checkbox' />
+							<input
+								type='checkbox'
+								checked={formData.checklist.payslipReadable}
+								onChange={(e) =>
+									handleCheckListChange('payslipReadable', e.target.checked)
+								}
+							/>
 							Payslip is Readable
 						</label>
 
@@ -485,102 +555,97 @@ function NewApplication() {
 						</p>
 
 						<section />
+					</div>
+				</section>
 
-						{/* Evaluation */}
-						<section>
-							<h2 className='text-lg font-semibold mb-4 text-gray-800'>
-								Evaluation
-							</h2>
+				{/* Evaluation */}
+				<section>
+					<h2 className='text-lg font-semibold mb-4 text-gray-800'>
+						Evaluation
+					</h2>
 
-							<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-								<input
-									type='number'
-									placeholder='Net Pay'
-									className='border p-2 rounded'
-									value={formData.evaluation.netPay}
-									onChange={(e) =>
-										handleEvaluationChange('netPay', e.target.value)
-									}
-								/>
+					<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+						<input
+							type='number'
+							placeholder='Net Pay'
+							className='border p-2 rounded'
+							value={formData.evaluation.netPay}
+							onChange={(e) => handleEvaluationChange('netPay', e.target.value)}
+						/>
 
-								<p className='text-blue-600'>
-									Net Pay After Deduction: ₱{netPayAfterDeduction}
-								</p>
+						<p className='text-blue-600'>
+							Net Pay After Deduction: ₱{netPayAfterDeduction}
+						</p>
 
-								<p className={isNPADValid ? 'text-green-600' : 'text-red-600'}>
-									NPAD Status: {isNPADValid ? 'Valid' : 'Below ₱5,000'}
-								</p>
+						<p className={isNPADValid ? 'text-green-600' : 'text-red-600'}>
+							NPAD Status: {isNPADValid ? 'Valid' : 'Below ₱5,000'}
+						</p>
 
-								<input
-									type='number'
-									placeholder='New Deduction'
-									className='border p-2 rounded'
-									value={formData.evaluation.newDeduction}
-									onChange={(e) =>
-										handleEvaluationChange('newDeduction', e.target.value)
-									}
-								/>
-								<input
-									type='number'
-									placeholder='Existing Balance (Renewal only)'
-									className='border p-2 rounded'
-								/>
-								<input
-									type='number'
-									placeholder='Existing Deduction (Renewal only)'
-									className='border p-2 rounded'
-									value={formData.evaluation.existingDeduction}
-									onChange={(e) =>
-										handleEvaluationChange('existingDeduction', e.target.value)
-									}
-								/>
-								<input
-									type='number'
-									placeholder='% Principal Paid (Renewal only)'
-									className='border p-2 rounded'
-								/>
-							</div>
-						</section>
+						<input
+							type='number'
+							placeholder='New Deduction'
+							className='border p-2 rounded'
+							value={formData.evaluation.newDeduction}
+							onChange={(e) =>
+								handleEvaluationChange('newDeduction', e.target.value)
+							}
+						/>
+						<input
+							type='number'
+							placeholder='Existing Balance (Renewal only)'
+							className='border p-2 rounded'
+						/>
+						<input
+							type='number'
+							placeholder='Existing Deduction (Renewal only)'
+							className='border p-2 rounded'
+							value={formData.evaluation.existingDeduction}
+							onChange={(e) =>
+								handleEvaluationChange('existingDeduction', e.target.value)
+							}
+						/>
+						<input
+							type='number'
+							placeholder='% Principal Paid (Renewal only)'
+							className='border p-2 rounded'
+						/>
+					</div>
+				</section>
 
-						{/* Result */}
-						<section>
-							<h2 className='text-lg font-semibold mb-4 text-gray-800'>
-								Result
-							</h2>
+				{/* Result */}
+				<section>
+					<h2 className='text-lg font-semibold mb-4 text-gray-800'>Result</h2>
 
-							<div className='bg-gray-50 p-4 rounded-lg space-y-2'>
-								<p>
-									<strong>Final Loan Granted:</strong> ₱0.00
-								</p>
-								<p>
-									<strong>NPAD:</strong> ₱0.00
-								</p>
-								<p className='font-semibold text-gray-700'>Status: Pending</p>
-								<p className='text-sm text-gray-600'>Reason: —</p>
-								<p
-									className={
-										status === 'Rejected'
-											? 'text-red-600 font-semibold'
-											: 'text-green-600 font-semibold'
-									}
-								>
-									Status: {status}
-								</p>
-								<ul className='text-sm text-gray-600 mt-2'>
-									{!isCoMakerValid && <li>• Co-maker salary is not valid</li>}
-									{!isNPADValid && (
-										<li>• Net Pay After Deduction is below ₱5,000</li>
-									)}
-									{!isUndeValid && <li>• Borrower has UNDE loan</li>}
-								</ul>
+					<div className='bg-gray-50 p-4 rounded-lg space-y-2'>
+						<p>
+							<strong>Final Loan Granted:</strong> ₱0.00
+						</p>
+						<p>
+							<strong>NPAD:</strong> ₱0.00
+						</p>
 
-								<ul className='text-sm text-gray-600 mt-2'>
-									{correctionReasons.map((reason, index) => (
-										<li key={index}>• {reason}</li>
-									))}
-								</ul>
-							</div>
-						</section>
+						<p
+							className={
+								status === 'Rejected'
+									? 'text-red-600 font-semibold'
+									: 'text-green-600 font-semibold'
+							}
+						>
+							Status: {status}
+						</p>
+						<ul className='text-sm text-gray-600 mt-2'>
+							{!isCoMakerValid && <li>• Co-maker salary is not valid</li>}
+							{!isNPADValid && (
+								<li>• Net Pay After Deduction is below ₱5,000</li>
+							)}
+							{!isUndeValid && <li>• Borrower has UNDE loan</li>}
+						</ul>
+
+						<ul className='text-sm text-gray-600 mt-2'>
+							{correctionReasons.map((reason, index) => (
+								<li key={index}>• {reason}</li>
+							))}
+						</ul>
 					</div>
 				</section>
 			</div>
