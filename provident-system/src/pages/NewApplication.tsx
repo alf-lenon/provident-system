@@ -162,8 +162,29 @@ function NewApplication() {
 
 	let status = 'Pending';
 
+	// Correction Reasons
+	const correctionReasons: string[] = [];
+
+	// Check fields one by one
+	if (!formData.borrower.fullName) {
+		correctionReasons.push('Missing Full Name');
+	}
+
+	if (!formData.loan.loanAmount) {
+		correctionReasons.push('Missing Loan Amount');
+	}
+
+	if (!formData.loan.accountNumber) {
+		correctionReasons.push('Missing Account Number');
+	}
+
+	const hasCorrections = correctionReasons.length > 0;
+
+	// Status logic
 	if (isRejected) {
 		status = 'Rejected';
+	} else if (hasCorrections) {
+		status = 'Needs Correction';
 	} else {
 		status = 'Ready for Processing';
 	}
@@ -545,13 +566,18 @@ function NewApplication() {
 								>
 									Status: {status}
 								</p>
-
 								<ul className='text-sm text-gray-600 mt-2'>
 									{!isCoMakerValid && <li>• Co-maker salary is not valid</li>}
 									{!isNPADValid && (
 										<li>• Net Pay After Deduction is below ₱5,000</li>
 									)}
 									{!isUndeValid && <li>• Borrower has UNDE loan</li>}
+								</ul>
+
+								<ul className='text-sm text-gray-600 mt-2'>
+									{correctionReasons.map((reason, index) => (
+										<li key={index}>• {reason}</li>
+									))}
 								</ul>
 							</div>
 						</section>
