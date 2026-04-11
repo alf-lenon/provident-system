@@ -32,6 +32,8 @@ type FormData = {
 		netPay: string;
 		newDeduction: string;
 		existingDeduction: string;
+		existingBalance: string;
+		percentPrincipalPaid: string;
 	};
 
 	flags: {
@@ -77,6 +79,8 @@ function NewApplication() {
 			netPay: '',
 			newDeduction: '',
 			existingDeduction: '',
+			existingBalance: '',
+			percentPrincipalPaid: '',
 		},
 
 		flags: {
@@ -166,23 +170,46 @@ function NewApplication() {
 		}));
 	};
 
+	// Borrower Informations
 	const borrowerGrade = Number(formData.borrower.salaryGrade);
 	const borrowerStep = Number(formData.borrower.salaryStep);
 
+	// Co maker Informations
 	const coMakerGrade = Number(formData.coMaker.salaryGrade);
 	const coMakerStep = Number(formData.coMaker.salaryStep);
 
-	// Co maker validation
-	const isCoMakerValid =
-		coMakerGrade > borrowerGrade ||
-		(coMakerGrade === borrowerGrade && coMakerStep >= borrowerStep);
+	const hasCoMakerSalaryInputs =
+		formData.borrower.salaryGrade &&
+		formData.borrower.salaryStep &&
+		formData.coMaker.salaryGrade &&
+		formData.coMaker.salaryStep;
 
+	// Co maker validation
+	const isCoMakerValid = hasCoMakerSalaryInputs
+		? coMakerGrade > borrowerGrade ||
+			(coMakerGrade === borrowerGrade && coMakerStep >= borrowerStep)
+		: true;
+
+	// Evaluation fields
 	const netPay = Number(formData.evaluation.netPay);
 	const newDeduction = Number(formData.evaluation.newDeduction);
 	const existingDeduction = Number(formData.evaluation.existingDeduction);
+	const existingBalance = Number(formData.evaluation.existingBalance);
+	const percentPrincipalPaid = Number(formData.evaluation.percentPrincipalPaid);
 
-	// Renewal
+	// Requested Loan Amount
+	const requestedLoanAmount = Number(formData.loan.loanAmount);
+
+	// If Loan type is Renewal
 	const isRenewal = formData.loan.loanType === 'Renewal';
+
+	// Final Loan Granted
+	const finalLoanGranted = isRenewal
+		? requestedLoanAmount - existingBalance
+		: requestedLoanAmount;
+
+	// Renewal Loan Type Principal Paid must be at least 30% rule
+	const isThirtyPercentPaidValid = !isRenewal || percentPrincipalPaid >= 30;
 
 	// Net Pay After Deduction
 	const netPayAfterDeduction = isRenewal
@@ -195,7 +222,11 @@ function NewApplication() {
 	// UNDE Loan Validation
 	const isUndeValid = !formData.flags.hasUndeLoan;
 
-	const isRejected = !isCoMakerValid || !isNPADValid || !isUndeValid;
+	const isRejected =
+		!isCoMakerValid ||
+		!isNPADValid ||
+		!isUndeValid ||
+		!isThirtyPercentPaidValid;
 
 	let status = 'Pending';
 
@@ -269,6 +300,12 @@ function NewApplication() {
 
 	if (!formData.loan.purpose) {
 		correctionReasons.push('Missing Loan Purpose');
+	}
+
+	if (isRenewal && finalLoanGranted <= 0) {
+		correctionReasons.push(
+			'Requested loan amount is too low after deducting existing balance',
+		);
 	}
 
 	const hasCorrections = correctionReasons.length > 0;
@@ -657,6 +694,10 @@ function NewApplication() {
 							type='number'
 							placeholder='Existing Balance (Renewal only)'
 							className='border p-2 rounded'
+							value={formData.evaluation.existingBalance}
+							onChange={(e) =>
+								handleEvaluationChange('existingBalance', e.target.value)
+							}
 						/>
 						<input
 							type='number'
@@ -671,6 +712,10 @@ function NewApplication() {
 							type='number'
 							placeholder='% Principal Paid (Renewal only)'
 							className='border p-2 rounded'
+							value={formData.evaluation.percentPrincipalPaid}
+							onChange={(e) =>
+								handleEvaluationChange('percentPrincipalPaid', e.target.value)
+							}
 						/>
 					</div>
 				</section>
@@ -681,7 +726,7 @@ function NewApplication() {
 
 					<div className='bg-gray-50 p-4 rounded-lg space-y-2'>
 						<p>
-							<strong>Final Loan Granted:</strong> ₱0.00
+							<strong>Final Loan Granted:</strong> ₱{finalLoanGranted}
 						</p>
 						<p>
 							<strong>Net Pay After Deduction:</strong> ₱{netPayAfterDeduction}
@@ -708,6 +753,10 @@ function NewApplication() {
 								<li>• Net Pay After Deduction is below ₱5,000</li>
 							)}
 							{!isUndeValid && <li>• Borrower has UNDE loan</li>}
+
+							{!isThirtyPercentPaidValid && (
+								<li>• Renewal loan is below the 30% paid rule</li>
+							)}
 						</ul>
 
 						<ul className='text-sm text-gray-600 mt-2'>
