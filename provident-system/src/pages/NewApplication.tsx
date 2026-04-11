@@ -24,6 +24,8 @@ type FormData = {
 		loanAmount: string;
 		accountNumber: string;
 		loanType: string;
+		term: string;
+		purpose: string;
 	};
 
 	evaluation: {
@@ -38,7 +40,12 @@ type FormData = {
 	checklist: {
 		soa: boolean;
 		payslipReadable: boolean;
+		payslipOriginal: boolean;
 		authorizationFormComplete: boolean;
+		supportingDocuments: boolean;
+		photocopyOfId: boolean;
+		photocopyOfAtm: boolean;
+		accountNumberVerified: boolean;
 	};
 };
 
@@ -63,6 +70,8 @@ function NewApplication() {
 			loanAmount: '',
 			accountNumber: '',
 			loanType: '',
+			term: '',
+			purpose: '',
 		},
 		evaluation: {
 			netPay: '',
@@ -76,7 +85,12 @@ function NewApplication() {
 		checklist: {
 			soa: false,
 			payslipReadable: false,
+			payslipOriginal: false,
 			authorizationFormComplete: false,
+			supportingDocuments: false,
+			photocopyOfId: false,
+			photocopyOfAtm: false,
+			accountNumberVerified: false,
 		},
 	});
 
@@ -227,6 +241,34 @@ function NewApplication() {
 
 	if (!formData.checklist.authorizationFormComplete) {
 		correctionReasons.push('Authorization form is not complete');
+	}
+
+	if (!formData.checklist.payslipOriginal) {
+		correctionReasons.push('Payslip of borrower is not original');
+	}
+
+	if (!formData.checklist.supportingDocuments) {
+		correctionReasons.push('Missing or insufficient supporting documents');
+	}
+
+	if (!formData.checklist.photocopyOfId) {
+		correctionReasons.push('Missing Photocopy of ID');
+	}
+
+	if (!formData.checklist.photocopyOfAtm) {
+		correctionReasons.push('Missing Photocopy of ATM');
+	}
+
+	if (!formData.checklist.accountNumberVerified) {
+		correctionReasons.push('Account number is not verified');
+	}
+
+	if (!formData.loan.term) {
+		correctionReasons.push('Missing Term');
+	}
+
+	if (!formData.loan.purpose) {
+		correctionReasons.push('Missing Loan Purpose');
 	}
 
 	const hasCorrections = correctionReasons.length > 0;
@@ -393,7 +435,11 @@ function NewApplication() {
 
 						{/* Purpose */}
 						<div>
-							<select className='border p-2 rounded'>
+							<select
+								className='border p-2 rounded'
+								value={formData.loan.purpose}
+								onChange={(e) => handleLoanChange('purpose', e.target.value)}
+							>
 								<option value=''>Select Purpose</option>
 
 								<option>Educational</option>
@@ -417,7 +463,11 @@ function NewApplication() {
 						/>
 
 						{/* Term */}
-						<select className='border p-2 rounded'>
+						<select
+							className='border p-2 rounded'
+							value={formData.loan.term}
+							onChange={(e) => handleLoanChange('term', e.target.value)}
+						>
 							<option value=''>Select Term</option>
 							<option>12 months</option>
 							<option>24 months</option>
@@ -462,11 +512,6 @@ function NewApplication() {
 
 						<label className='flex items-center gap-2'>
 							<input type='checkbox' />
-							DepEd ID
-						</label>
-
-						<label className='flex items-center gap-2'>
-							<input type='checkbox' />
 							Approved Appointment
 						</label>
 
@@ -476,7 +521,16 @@ function NewApplication() {
 						</label>
 
 						<label className='flex items-center gap-2'>
-							<input type='checkbox' />
+							<input
+								type='checkbox'
+								checked={formData.checklist.accountNumberVerified}
+								onChange={(e) =>
+									handleCheckListChange(
+										'accountNumberVerified',
+										e.target.checked,
+									)
+								}
+							/>
 							Account Number Verified
 						</label>
 
@@ -487,11 +541,6 @@ function NewApplication() {
 								onChange={(e) => handleCheckListChange('soa', e.target.checked)}
 							/>
 							SOA (for Renewal only)
-						</label>
-
-						<label className='flex items-center gap-2'>
-							<input type='checkbox' />
-							No UNDE Loan
 						</label>
 
 						<label className='flex items-center gap-2'>
@@ -520,22 +569,46 @@ function NewApplication() {
 						</label>
 
 						<label className='flex items-center gap-2'>
-							<input type='checkbox' />
+							<input
+								type='checkbox'
+								checked={formData.checklist.payslipOriginal}
+								onChange={(e) =>
+									handleCheckListChange('payslipOriginal', e.target.checked)
+								}
+							/>
 							Payslip is Original
 						</label>
 
 						<label className='flex items-center gap-2'>
-							<input type='checkbox' />
-							Purpose Attachment Complete
+							<input
+								type='checkbox'
+								checked={formData.checklist.supportingDocuments}
+								onChange={(e) =>
+									handleCheckListChange('supportingDocuments', e.target.checked)
+								}
+							/>
+							Supporting Documents
 						</label>
 
 						<label className='flex items-center gap-2'>
-							<input type='checkbox' />
+							<input
+								type='checkbox'
+								checked={formData.checklist.photocopyOfId}
+								onChange={(e) =>
+									handleCheckListChange('photocopyOfId', e.target.checked)
+								}
+							/>
 							Photocopy of ID
 						</label>
 
 						<label className='flex items-center gap-2'>
-							<input type='checkbox' />
+							<input
+								type='checkbox'
+								checked={formData.checklist.photocopyOfAtm}
+								onChange={(e) =>
+									handleCheckListChange('photocopyOfAtm', e.target.checked)
+								}
+							/>
 							Photocopy of ATM
 						</label>
 
@@ -553,8 +626,6 @@ function NewApplication() {
 						<p className={isUndeValid ? 'text-green-600' : 'text-red-600'}>
 							UNDE Status: {isUndeValid ? 'No UNDE' : 'Has UNDE Loan'}
 						</p>
-
-						<section />
 					</div>
 				</section>
 
@@ -572,14 +643,6 @@ function NewApplication() {
 							value={formData.evaluation.netPay}
 							onChange={(e) => handleEvaluationChange('netPay', e.target.value)}
 						/>
-
-						<p className='text-blue-600'>
-							Net Pay After Deduction: ₱{netPayAfterDeduction}
-						</p>
-
-						<p className={isNPADValid ? 'text-green-600' : 'text-red-600'}>
-							NPAD Status: {isNPADValid ? 'Valid' : 'Below ₱5,000'}
-						</p>
 
 						<input
 							type='number'
@@ -621,14 +684,20 @@ function NewApplication() {
 							<strong>Final Loan Granted:</strong> ₱0.00
 						</p>
 						<p>
-							<strong>NPAD:</strong> ₱0.00
+							<strong>Net Pay After Deduction:</strong> ₱{netPayAfterDeduction}
+						</p>
+
+						<p className={isNPADValid ? 'text-green-600' : 'text-red-600'}>
+							NPAD Status: {isNPADValid ? 'Valid' : 'Below ₱5,000'}
 						</p>
 
 						<p
 							className={
 								status === 'Rejected'
 									? 'text-red-600 font-semibold'
-									: 'text-green-600 font-semibold'
+									: status === 'Needs Correction'
+										? 'text-yellow-600 font-semibold'
+										: 'text-green-600 font-semibold'
 							}
 						>
 							Status: {status}
