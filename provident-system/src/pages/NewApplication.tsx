@@ -48,6 +48,11 @@ type FormData = {
 		photocopyOfId: boolean;
 		photocopyOfAtm: boolean;
 		accountNumberVerified: boolean;
+		loanApplicationForm: boolean;
+		authorizationSalaryDeduction: boolean;
+		latestPayslip: boolean;
+		approvedAppointment: boolean;
+		coMakerDocuments: boolean;
 	};
 };
 
@@ -95,6 +100,11 @@ function NewApplication() {
 			photocopyOfId: false,
 			photocopyOfAtm: false,
 			accountNumberVerified: false,
+			loanApplicationForm: false,
+			authorizationSalaryDeduction: false,
+			latestPayslip: false,
+			approvedAppointment: false,
+			coMakerDocuments: false,
 		},
 	});
 
@@ -263,7 +273,7 @@ function NewApplication() {
 	}
 
 	if (!formData.checklist.soa && formData.loan.loanType === 'Renewal') {
-		correctionReasons.push('Soa is required for renewal');
+		correctionReasons.push('SOA is required for renewal');
 	}
 
 	if (!formData.checklist.payslipReadable) {
@@ -304,8 +314,30 @@ function NewApplication() {
 
 	if (isRenewal && finalLoanGranted <= 0) {
 		correctionReasons.push(
-			'Requested loan amount is too low after deducting existing balance',
+			'Requested amount is too low after deducting existing balance. Consider increasing loan amount.',
 		);
+	}
+
+	if (!formData.checklist.loanApplicationForm) {
+		correctionReasons.push('Missing Loan Application Form');
+	}
+
+	if (!formData.checklist.authorizationSalaryDeduction) {
+		correctionReasons.push(
+			'Authorization for Salary Deduction fields are empty',
+		);
+	}
+
+	if (!formData.checklist.latestPayslip) {
+		correctionReasons.push('Payslip is not latest');
+	}
+
+	if (!formData.checklist.approvedAppointment) {
+		correctionReasons.push('Appointment is not approved');
+	}
+
+	if (!formData.checklist.coMakerDocuments) {
+		correctionReasons.push('Missing Co-maker documents');
 	}
 
 	const hasCorrections = correctionReasons.length > 0;
@@ -318,6 +350,9 @@ function NewApplication() {
 	} else {
 		status = 'Ready for Processing';
 	}
+
+	// Format currency
+	const formatPeso = (amount: number) => amount.toLocaleString('en-PH');
 
 	return (
 		<main className='min-h-screen bg-gray-100 p-6'>
@@ -345,7 +380,6 @@ function NewApplication() {
 							value={formData.borrower.fullName}
 							onChange={(e) => handleBorrowerChange('fullName', e.target.value)}
 						/>
-
 						<input
 							type='text'
 							placeholder='Employee Number'
@@ -355,7 +389,6 @@ function NewApplication() {
 								handleBorrowerChange('employeeNumber', e.target.value)
 							}
 						/>
-
 						<input
 							type='text'
 							placeholder='School / Office'
@@ -363,7 +396,6 @@ function NewApplication() {
 							value={formData.borrower.school}
 							onChange={(e) => handleBorrowerChange('school', e.target.value)}
 						/>
-
 						<input
 							type='text'
 							placeholder='Position'
@@ -371,7 +403,6 @@ function NewApplication() {
 							value={formData.borrower.position}
 							onChange={(e) => handleBorrowerChange('position', e.target.value)}
 						/>
-
 						<input
 							type='number'
 							placeholder='Salary Grade'
@@ -381,7 +412,6 @@ function NewApplication() {
 								handleBorrowerChange('salaryGrade', e.target.value)
 							}
 						/>
-
 						<input
 							type='number'
 							placeholder='Salary Step'
@@ -391,12 +421,10 @@ function NewApplication() {
 								handleBorrowerChange('salaryStep', e.target.value)
 							}
 						/>
-
 						{/* Co-maker Section */}
 						<h3 className='col-span-2 font-semibold text-gray-700 mt-4'>
 							Co-maker Information
 						</h3>
-
 						<input
 							type='text'
 							placeholder='Co-maker Name'
@@ -404,7 +432,6 @@ function NewApplication() {
 							value={formData.coMaker.name}
 							onChange={(e) => handleCoMakerChange('name', e.target.value)}
 						/>
-
 						<input
 							type='text'
 							placeholder='Co-maker Employee Number'
@@ -414,7 +441,6 @@ function NewApplication() {
 								handleCoMakerChange('employeeNumber', e.target.value)
 							}
 						/>
-
 						<input
 							type='text'
 							placeholder='Co-maker Contact Number'
@@ -424,7 +450,6 @@ function NewApplication() {
 								handleCoMakerChange('contactNumber', e.target.value)
 							}
 						/>
-
 						<input
 							type='number'
 							placeholder='Salary Grade'
@@ -434,7 +459,6 @@ function NewApplication() {
 								handleCoMakerChange('salaryGrade', e.target.value)
 							}
 						/>
-
 						<input
 							type='number'
 							placeholder='Salary Step'
@@ -445,9 +469,11 @@ function NewApplication() {
 							}
 						/>
 
-						<p className='text-sm text-blue-600'>
-							Co-Maker valid: {isCoMakerValid ? 'Yes' : 'No'}
-						</p>
+						{hasCoMakerSalaryInputs && (
+							<p className='text-sm text-blue-600'>
+								Co-Maker valid: {isCoMakerValid ? 'Yes' : 'No'}
+							</p>
+						)}
 					</div>
 				</section>
 
@@ -533,27 +559,60 @@ function NewApplication() {
 
 					<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
 						<label className='flex items-center gap-2'>
-							<input type='checkbox' />
+							<input
+								type='checkbox'
+								checked={formData.checklist.loanApplicationForm}
+								onChange={(e) =>
+									handleCheckListChange('loanApplicationForm', e.target.checked)
+								}
+							/>
 							Loan Application Form
 						</label>
 
 						<label className='flex items-center gap-2'>
-							<input type='checkbox' />
+							<input
+								type='checkbox'
+								checked={formData.checklist.authorizationSalaryDeduction}
+								onChange={(e) =>
+									handleCheckListChange(
+										'authorizationSalaryDeduction',
+										e.target.checked,
+									)
+								}
+							/>
 							Authorization for Salary Deduction
 						</label>
 
 						<label className='flex items-center gap-2'>
-							<input type='checkbox' />
+							<input
+								type='checkbox'
+								checked={formData.checklist.latestPayslip}
+								onChange={(e) =>
+									handleCheckListChange('latestPayslip', e.target.checked)
+								}
+							/>
 							Latest Payslip
 						</label>
 
 						<label className='flex items-center gap-2'>
-							<input type='checkbox' />
+							<input
+								type='checkbox'
+								checked={formData.checklist.approvedAppointment}
+								onChange={(e) =>
+									handleCheckListChange('approvedAppointment', e.target.checked)
+								}
+							/>
 							Approved Appointment
 						</label>
 
 						<label className='flex items-center gap-2'>
-							<input type='checkbox' />
+							<input
+								type='checkbox'
+								checked={formData.checklist.coMakerDocuments}
+								onChange={(e) =>
+									handleCheckListChange('coMakerDocuments', e.target.checked)
+								}
+							/>
 							Co-maker Documents
 						</label>
 
@@ -726,10 +785,12 @@ function NewApplication() {
 
 					<div className='bg-gray-50 p-4 rounded-lg space-y-2'>
 						<p>
-							<strong>Final Loan Granted:</strong> ₱{finalLoanGranted}
+							<strong>Final Loan Granted:</strong> ₱
+							{formatPeso(finalLoanGranted)}
 						</p>
 						<p>
-							<strong>Net Pay After Deduction:</strong> ₱{netPayAfterDeduction}
+							<strong>Net Pay After Deduction:</strong> ₱
+							{formatPeso(netPayAfterDeduction)}
 						</p>
 
 						<p className={isNPADValid ? 'text-green-600' : 'text-red-600'}>
@@ -747,23 +808,33 @@ function NewApplication() {
 						>
 							Status: {status}
 						</p>
-						<ul className='text-sm text-gray-600 mt-2'>
-							{!isCoMakerValid && <li>• Co-maker salary is not valid</li>}
-							{!isNPADValid && (
-								<li>• Net Pay After Deduction is below ₱5,000</li>
-							)}
-							{!isUndeValid && <li>• Borrower has UNDE loan</li>}
+						{status === 'Rejected' && (
+							<ul className='text-sm text-gray-600 mt-2'>
+								{!isCoMakerValid && <li>• Co-maker salary is not valid</li>}
+								{!isNPADValid && (
+									<li>• Net Pay After Deduction is below ₱5,000</li>
+								)}
+								{!isUndeValid && <li>• Borrower has UNDE loan</li>}
 
-							{!isThirtyPercentPaidValid && (
-								<li>• Renewal loan is below the 30% paid rule</li>
-							)}
-						</ul>
+								{!isThirtyPercentPaidValid && (
+									<li>• Renewal loan is below the 30% paid rule</li>
+								)}
+							</ul>
+						)}
 
-						<ul className='text-sm text-gray-600 mt-2'>
-							{correctionReasons.map((reason, index) => (
-								<li key={index}>• {reason}</li>
-							))}
-						</ul>
+						{status === 'Needs Correction' && (
+							<ul className='text-sm text-gray-600 mt-2'>
+								{correctionReasons.map((reason, index) => (
+									<li key={index}>• {reason}</li>
+								))}
+							</ul>
+						)}
+
+						{status === 'Ready for Processing' && (
+							<p className='text-green-600'>
+								Application is ready for processing
+							</p>
+						)}
 					</div>
 				</section>
 			</div>
