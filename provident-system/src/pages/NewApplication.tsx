@@ -180,6 +180,26 @@ function NewApplication() {
 		}));
 	};
 
+	// Send data to back end
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault(); // Prevents page from reloading
+
+		try {
+			const response = await fetch('http://localhost:5000/applications', {
+				method: 'POST', // Send new data
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(formData),
+			});
+
+			const data = await response.json();
+			console.log(data);
+		} catch (error) {
+			console.error('Error', error);
+		}
+	};
+
 	// Borrower Informations
 	const borrowerGrade = Number(formData.borrower.salaryGrade);
 	const borrowerStep = Number(formData.borrower.salaryStep);
@@ -365,7 +385,10 @@ function NewApplication() {
 			</header>
 
 			{/* Form Container */}
-			<div className='bg-white p-6 rounded-lg shadow space-y-8'>
+			<form
+				onSubmit={handleSubmit}
+				className='bg-white p-6 rounded-lg shadow space-y-8'
+			>
 				{/* Borrower Information */}
 				<section>
 					<h2 className='text-lg font-semibold mb-4 text-gray-800'>
@@ -837,7 +860,14 @@ function NewApplication() {
 						)}
 					</div>
 				</section>
-			</div>
+
+				<button
+					type='submit'
+					className='bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700'
+				>
+					Submit Application
+				</button>
+			</form>
 		</main>
 	);
 }
