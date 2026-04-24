@@ -1,4 +1,4 @@
-import express, { application } from 'express';
+import express from 'express';
 import cors from 'cors'; // Frontend can talk to backend
 
 const app = express();
