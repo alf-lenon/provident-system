@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+// TypeScript
 type Application = {
 	borrower: {
 		fullName: string;

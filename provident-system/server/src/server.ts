@@ -9,6 +9,7 @@ const applications: any[] = [];
 app.use(cors());
 app.use(express.json()); // Parse incoming JSON data or Converts JSON string to object again.
 
+// API
 app.post('/applications', (req, res) => {
 	applications.push(req.body);
 	console.log('Applications saved', applications);
@@ -18,11 +19,11 @@ app.post('/applications', (req, res) => {
 		application: applications,
 	});
 });
-
+// API
 app.get('/applications', (req, res) => {
 	res.json(applications);
 });
 
 app.listen(PORT, () => {
-	console.log(`Server running on http://localhost:${PORT}`);
+	console.log(`Server running on http://localhost:${PORT}/applications`);
 });
