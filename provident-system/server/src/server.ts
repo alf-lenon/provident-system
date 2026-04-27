@@ -1,6 +1,8 @@
+import connectDB from './config/db';
+
 import express from 'express';
 import cors from 'cors'; // Frontend can talk to backend
-
+connectDB();
 const app = express();
 const PORT = 5000;
 // Tempotary storage
