@@ -14,14 +14,28 @@ app.use(express.json()); // Parse incoming JSON data or Converts JSON string to 
 
 // Save into database
 app.post('/applications', async (req, res) => {
-	// Take the data from frontend and save it to MongoDB
-	// create() = INSERT data into database
-	const newApplication = await ApplicationModel.create(req.body);
+	// Loan amount must be positive
+	try {
+		if (Number(req.body.loan.loanAmount) <= 0) {
+			return res.status(400).json({
+				message: 'Loan amount must be greater than 0',
+			});
+		}
 
-	res.json({
-		message: 'Application saved to database',
-		application: newApplication,
-	});
+		// Take the data from frontend and save it to MongoDB
+		// create() = INSERT data into database
+		const newApplication = await ApplicationModel.create(req.body);
+
+		res.json({
+			message: 'Application saved to database',
+			application: newApplication,
+		});
+	} catch (error: any) {
+		res.status(400).json({
+			message: 'Validation failed',
+			error: error.message,
+		});
+	}
 });
 
 // Get saved data

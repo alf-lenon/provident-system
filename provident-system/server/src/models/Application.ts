@@ -4,27 +4,30 @@ import mongoose from 'mongoose';
 const applicationSchema = new mongoose.Schema(
 	{
 		borrower: {
-			fullName: { type: String, required: true },
-			employeeNumber: String,
-			school: String,
-			position: String,
+			fullName: { type: String, required: [true, 'Full name is required'] },
+			employeeNumber: { type: String, required: true },
+			school: { type: String, required: true },
+			position: { type: String, required: true },
 			salaryGrade: String,
 			salaryStep: String,
 		},
 
 		coMaker: {
-			name: String,
-			employeeNumber: String,
-			contactNumber: String,
+			name: { type: String, required: [true, 'Full name is required'] },
+			employeeNumber: { type: String, required: true },
+			contactNumber: { type: String, required: true },
 			salaryGrade: String,
 			salaryStep: String,
 		},
 
 		loan: {
-			loanAmount: { type: String, required: true },
-			loanType: { type: String, required: true },
-			accountNumber: { type: String, required: true },
-			term: { type: String, required: true },
+			loanAmount: { type: String, required: [true, 'Loan amount is required'] },
+			loanType: { type: String, required: [true, 'Loan type is required'] },
+			accountNumber: {
+				type: String,
+				required: [true, 'Account number is required'],
+			},
+			term: { type: String, required: [true, 'Term is required'] },
 			purpose: String,
 		},
 
