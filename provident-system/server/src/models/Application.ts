@@ -38,6 +38,17 @@ const applicationSchema = new mongoose.Schema(
 		},
 
 		evaluation: {
+			netPay: {
+				type: Number,
+				required: true,
+				min: [0, 'Net pay must be higher than 5,000'],
+			},
+			newDeduction: { type: Number, required: true },
+
+			existingDeduction: Number,
+			existingBalance: Number,
+			percentPrincipalPaid: Number,
+
 			npad: Number,
 			unde: Number,
 			status: String,
