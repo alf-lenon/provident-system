@@ -1,7 +1,7 @@
 import ApplicationModel from './models/Application';
 import connectDB from './config/db';
 
-import express, { application } from 'express';
+import express from 'express';
 import cors from 'cors'; // Frontend can talk to backend
 connectDB();
 const app = express();
@@ -14,9 +14,40 @@ app.use(express.json()); // Parse incoming JSON data or Converts JSON string to 
 
 // Save into database
 app.post('/applications', async (req, res) => {
-	// Loan amount must be positive
 	try {
-		if (Number(req.body.loan.loanAmount) <= 0) {
+		const formData = req.body;
+
+		// Convert values to numbers for NPAD computation
+		const netPay = Number(formData.evaluation.netPay);
+		const newDeduction = Number(formData.evaluation.newDeduction);
+		const existingDeduction = Number(
+			formData.evaluation.existingDeduction || 0,
+		);
+
+		const percentPrincipalPaid = Number(
+			formData.evaluation.percentPrincipalPaid || 0,
+		);
+
+		const loanType = formData.loan.loanType;
+
+		//  30% rule
+		if (loanType === 'Renewal' && percentPrincipalPaid < 0.3) {
+			return res.status(400).json({
+				message: 'Renewal not allowed: less than 30% principal paid',
+			});
+		}
+
+		//  NPAD
+		let npad =
+			loanType === 'Renewal'
+				? netPay - newDeduction + existingDeduction
+				: netPay - newDeduction;
+
+		//  Status
+		let status = npad < 5000 ? 'Rejected' : 'Approved';
+
+		// Loan amount must be positive
+		if (Number(formData.loan.loanAmount) <= 0) {
 			return res.status(400).json({
 				message: 'Loan amount must be greater than 0',
 			});
@@ -24,15 +55,24 @@ app.post('/applications', async (req, res) => {
 
 		// Take the data from frontend and save it to MongoDB
 		// create() = INSERT data into database
-		const newApplication = await ApplicationModel.create(req.body);
+
+		//  Save everything
+		const newApplication = await ApplicationModel.create({
+			...formData,
+			evaluation: {
+				...formData.evaluation,
+				npad,
+				status,
+			},
+		});
 
 		res.json({
-			message: 'Application saved to database',
+			message: 'Application processed and saved',
 			application: newApplication,
 		});
 	} catch (error: any) {
 		res.status(400).json({
-			message: 'Validation failed',
+			message: 'Error processing application',
 			error: error.message,
 		});
 	}
