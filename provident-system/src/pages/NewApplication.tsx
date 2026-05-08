@@ -56,6 +56,24 @@ type FormData = {
 	};
 };
 
+type BackendResult = {
+	message: string;
+
+	application: {
+		evaluation: {
+			netPayAfterDeduction: number;
+			isNPADValid: boolean;
+			isThirtyPercentPaidValid: boolean;
+			finalLoanGranted: number;
+			hasSalaryInputs: boolean;
+			isCoMakerValid: boolean;
+			isUndeValid: boolean;
+			status: string;
+			remarks: string[];
+		};
+	};
+};
+
 function NewApplication() {
 	const [formData, setFormData] = useState<FormData>({
 		borrower: {
@@ -107,6 +125,9 @@ function NewApplication() {
 			coMakerDocuments: false,
 		},
 	});
+
+	// Back end result state
+	const [result, setResult] = useState<BackendResult | null>(null);
 
 	const handleBorrowerChange = (
 		field: keyof FormData['borrower'],
@@ -186,7 +207,7 @@ function NewApplication() {
 
 		try {
 			const response = await fetch('http://localhost:5000/applications', {
-				method: 'POST', // Send new data
+				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 				},
@@ -194,182 +215,17 @@ function NewApplication() {
 			});
 
 			const data = await response.json();
-			console.log(data);
+
+			if (!response.ok) {
+				console.error(data.message);
+				return;
+			}
+
+			setResult(data);
 		} catch (error) {
 			console.error('Error', error);
 		}
 	};
-
-	// Borrower Informations
-	const borrowerGrade = Number(formData.borrower.salaryGrade);
-	const borrowerStep = Number(formData.borrower.salaryStep);
-
-	// Co maker Informations
-	const coMakerGrade = Number(formData.coMaker.salaryGrade);
-	const coMakerStep = Number(formData.coMaker.salaryStep);
-
-	const hasCoMakerSalaryInputs =
-		formData.borrower.salaryGrade &&
-		formData.borrower.salaryStep &&
-		formData.coMaker.salaryGrade &&
-		formData.coMaker.salaryStep;
-
-	// Co maker validation
-	const isCoMakerValid = hasCoMakerSalaryInputs
-		? coMakerGrade > borrowerGrade ||
-			(coMakerGrade === borrowerGrade && coMakerStep >= borrowerStep)
-		: true;
-
-	// Evaluation fields
-	const netPay = Number(formData.evaluation.netPay);
-	const newDeduction = Number(formData.evaluation.newDeduction);
-	const existingDeduction = Number(formData.evaluation.existingDeduction);
-	const existingBalance = Number(formData.evaluation.existingBalance);
-	const percentPrincipalPaid = Number(formData.evaluation.percentPrincipalPaid);
-
-	// Requested Loan Amount
-	const requestedLoanAmount = Number(formData.loan.loanAmount);
-
-	// If Loan type is Renewal
-	const isRenewal = formData.loan.loanType === 'Renewal';
-
-	// Final Loan Granted
-	const finalLoanGranted = isRenewal
-		? requestedLoanAmount - existingBalance
-		: requestedLoanAmount;
-
-	// Renewal Loan Type Principal Paid must be at least 30% rule
-	const isThirtyPercentPaidValid = !isRenewal || percentPrincipalPaid >= 30;
-
-	// Net Pay After Deduction
-	const netPayAfterDeduction = isRenewal
-		? netPay - newDeduction + existingDeduction
-		: netPay - newDeduction;
-
-	// NPAD Validation
-	const isNPADValid = netPayAfterDeduction >= 5000;
-
-	// UNDE Loan Validation
-	const isUndeValid = !formData.flags.hasUndeLoan;
-
-	const isRejected =
-		!isCoMakerValid ||
-		!isNPADValid ||
-		!isUndeValid ||
-		!isThirtyPercentPaidValid;
-
-	let status = 'Pending';
-
-	// Correction Reasons
-	const correctionReasons: string[] = [];
-
-	// Check fields one by one
-	if (!formData.borrower.fullName) {
-		correctionReasons.push("Missing Borrower's Full Name");
-	}
-
-	if (!formData.coMaker.name) {
-		correctionReasons.push("Missing Co-Maker's Full Name");
-	}
-
-	if (!formData.loan.loanAmount) {
-		correctionReasons.push('Missing Loan Amount');
-	}
-
-	if (!formData.loan.accountNumber) {
-		correctionReasons.push('Missing Account Number');
-	}
-
-	if (!formData.borrower.employeeNumber) {
-		correctionReasons.push("Missing Borrower's Employee Number");
-	}
-
-	if (!formData.coMaker.employeeNumber) {
-		correctionReasons.push("Missing Co-Maker's Employee Number");
-	}
-
-	if (!formData.loan.loanType) {
-		correctionReasons.push('Missing Loan Type');
-	}
-
-	if (!formData.checklist.soa && formData.loan.loanType === 'Renewal') {
-		correctionReasons.push('SOA is required for renewal');
-	}
-
-	if (!formData.checklist.payslipReadable) {
-		correctionReasons.push('Payslip is not readable');
-	}
-
-	if (!formData.checklist.authorizationFormComplete) {
-		correctionReasons.push('Authorization form is not complete');
-	}
-
-	if (!formData.checklist.payslipOriginal) {
-		correctionReasons.push('Payslip of borrower is not original');
-	}
-
-	if (!formData.checklist.supportingDocuments) {
-		correctionReasons.push('Missing or insufficient supporting documents');
-	}
-
-	if (!formData.checklist.photocopyOfId) {
-		correctionReasons.push('Missing Photocopy of ID');
-	}
-
-	if (!formData.checklist.photocopyOfAtm) {
-		correctionReasons.push('Missing Photocopy of ATM');
-	}
-
-	if (!formData.checklist.accountNumberVerified) {
-		correctionReasons.push('Account number is not verified');
-	}
-
-	if (!formData.loan.term) {
-		correctionReasons.push('Missing Term');
-	}
-
-	if (!formData.loan.purpose) {
-		correctionReasons.push('Missing Loan Purpose');
-	}
-
-	if (isRenewal && finalLoanGranted <= 0) {
-		correctionReasons.push(
-			'Requested amount is too low after deducting existing balance. Consider increasing loan amount.',
-		);
-	}
-
-	if (!formData.checklist.loanApplicationForm) {
-		correctionReasons.push('Missing Loan Application Form');
-	}
-
-	if (!formData.checklist.authorizationSalaryDeduction) {
-		correctionReasons.push(
-			'Authorization for Salary Deduction fields are empty',
-		);
-	}
-
-	if (!formData.checklist.latestPayslip) {
-		correctionReasons.push('Payslip is not latest');
-	}
-
-	if (!formData.checklist.approvedAppointment) {
-		correctionReasons.push('Appointment is not approved');
-	}
-
-	if (!formData.checklist.coMakerDocuments) {
-		correctionReasons.push('Missing Co-maker documents');
-	}
-
-	const hasCorrections = correctionReasons.length > 0;
-
-	// Status logic
-	if (isRejected) {
-		status = 'Rejected';
-	} else if (hasCorrections) {
-		status = 'Needs Correction';
-	} else {
-		status = 'Ready for Processing';
-	}
 
 	// Format currency
 	const formatPeso = (amount: number) => amount.toLocaleString('en-PH');
@@ -492,9 +348,10 @@ function NewApplication() {
 							}
 						/>
 
-						{hasCoMakerSalaryInputs && (
+						{result?.application?.evaluation?.hasSalaryInputs && (
 							<p className='text-sm text-blue-600'>
-								Co-Maker valid: {isCoMakerValid ? 'Yes' : 'No'}
+								Co-Maker valid:{' '}
+								{result?.application?.evaluation?.isCoMakerValid ? 'Yes' : 'No'}
 							</p>
 						)}
 					</div>
@@ -742,8 +599,17 @@ function NewApplication() {
 							Has UNDE Loan
 						</label>
 
-						<p className={isUndeValid ? 'text-green-600' : 'text-red-600'}>
-							UNDE Status: {isUndeValid ? 'No UNDE' : 'Has UNDE Loan'}
+						<p
+							className={
+								result?.application?.evaluation?.isUndeValid
+									? 'text-green-600'
+									: 'text-red-600'
+							}
+						>
+							UNDE Status:{' '}
+							{result?.application?.evaluation?.isUndeValid
+								? 'No UNDE'
+								: 'Has UNDE Loan'}
 						</p>
 					</div>
 				</section>
@@ -809,51 +675,72 @@ function NewApplication() {
 					<div className='bg-gray-50 p-4 rounded-lg space-y-2'>
 						<p>
 							<strong>Final Loan Granted:</strong> ₱
-							{formatPeso(finalLoanGranted)}
+							{formatPeso(
+								result?.application?.evaluation?.finalLoanGranted ?? 0,
+							)}
 						</p>
 						<p>
 							<strong>Net Pay After Deduction:</strong> ₱
-							{formatPeso(netPayAfterDeduction)}
-						</p>
-
-						<p className={isNPADValid ? 'text-green-600' : 'text-red-600'}>
-							NPAD Status: {isNPADValid ? 'Valid' : 'Below ₱5,000'}
+							{formatPeso(
+								result?.application?.evaluation?.netPayAfterDeduction ?? 0,
+							)}
 						</p>
 
 						<p
 							className={
-								status === 'Rejected'
+								result?.application?.evaluation?.isNPADValid
+									? 'text-green-600'
+									: 'text-red-600'
+							}
+						>
+							NPAD Status:{' '}
+							{result?.application?.evaluation?.isNPADValid
+								? 'Valid'
+								: 'Below ₱5,000'}
+						</p>
+
+						<p
+							className={
+								result?.application?.evaluation?.status === 'Rejected'
 									? 'text-red-600 font-semibold'
-									: status === 'Needs Correction'
+									: result?.application?.evaluation?.status ===
+										  'Needs Correction'
 										? 'text-yellow-600 font-semibold'
 										: 'text-green-600 font-semibold'
 							}
 						>
-							Status: {status}
+							Status: {result?.application?.evaluation?.status}
 						</p>
-						{status === 'Rejected' && (
+						{result?.application?.evaluation?.status === 'Rejected' && (
 							<ul className='text-sm text-gray-600 mt-2'>
-								{!isCoMakerValid && <li>• Co-maker salary is not valid</li>}
-								{!isNPADValid && (
+								{!result?.application?.evaluation?.isCoMakerValid && (
+									<li>• Co-maker salary is not valid</li>
+								)}
+								{!result?.application?.evaluation?.isNPADValid && (
 									<li>• Net Pay After Deduction is below ₱5,000</li>
 								)}
-								{!isUndeValid && <li>• Borrower has UNDE loan</li>}
+								{!result?.application?.evaluation?.isUndeValid && (
+									<li>• Borrower has UNDE loan</li>
+								)}
 
-								{!isThirtyPercentPaidValid && (
+								{!result?.application?.evaluation?.isThirtyPercentPaidValid && (
 									<li>• Renewal loan is below the 30% paid rule</li>
 								)}
 							</ul>
 						)}
 
-						{status === 'Needs Correction' && (
+						{result?.application?.evaluation?.status === 'Needs Correction' && (
 							<ul className='text-sm text-gray-600 mt-2'>
-								{correctionReasons.map((reason, index) => (
-									<li key={index}>• {reason}</li>
-								))}
+								{result?.application?.evaluation?.remarks.map(
+									(reason, index) => (
+										<li key={index}>• {reason}</li>
+									),
+								)}
 							</ul>
 						)}
 
-						{status === 'Ready for Processing' && (
+						{result?.application?.evaluation?.status ===
+							'Ready for Processing' && (
 							<p className='text-green-600'>
 								Application is ready for processing
 							</p>

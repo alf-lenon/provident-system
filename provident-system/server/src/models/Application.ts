@@ -31,10 +31,24 @@ const applicationSchema = new mongoose.Schema(
 			purpose: String,
 		},
 
+		flags: {
+			hasUndeLoan: Boolean,
+		},
+
 		checklist: {
-			soaRequired: Boolean,
+			soa: Boolean,
 			payslipReadable: Boolean,
-			authorizationComplete: Boolean,
+			payslipOriginal: Boolean,
+			authorizationFormComplete: Boolean,
+			supportingDocuments: Boolean,
+			photocopyOfId: Boolean,
+			photocopyOfAtm: Boolean,
+			accountNumberVerified: Boolean,
+			loanApplicationForm: Boolean,
+			authorizationSalaryDeduction: Boolean,
+			latestPayslip: Boolean,
+			approvedAppointment: Boolean,
+			coMakerDocuments: Boolean,
 		},
 
 		evaluation: {
@@ -49,8 +63,14 @@ const applicationSchema = new mongoose.Schema(
 			existingBalance: Number,
 			percentPrincipalPaid: Number,
 
-			npad: Number,
-			unde: Number,
+			netPayAfterDeduction: Number,
+			isNPADValid: Boolean,
+			isThirtyPercentPaidValid: Boolean,
+			finalLoanGranted: Number,
+
+			hasSalaryInputs: Boolean,
+			isCoMakerValid: Boolean,
+			isUndeValid: Boolean,
 			status: String,
 			remarks: [String], // array of reasons
 		},
