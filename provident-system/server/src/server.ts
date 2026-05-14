@@ -1,3 +1,11 @@
+import {
+	computeNPAD,
+	computeFinalLoanGranted,
+	validateCoMaker,
+	computeStatus,
+	generateCorrectionReasons,
+} from './utils/evaluation';
+
 import ApplicationModel from './models/Application';
 import connectDB from './config/db';
 
@@ -35,17 +43,22 @@ app.post('/applications', async (req, res) => {
 		const isRenewal = formData.loan.loanType === 'Renewal';
 
 		// Final Loan Granted
-		const finalLoanGranted = isRenewal
-			? requestedLoanAmount - existingBalance
-			: requestedLoanAmount;
+		const finalLoanGranted = computeFinalLoanGranted(
+			requestedLoanAmount,
+			existingBalance,
+			isRenewal,
+		);
 
 		// Renewal Loan Type Principal Paid must be at least 30% rule
 		const isThirtyPercentPaidValid = !isRenewal || percentPrincipalPaid >= 30;
 
 		// Net Pay After Deduction
-		const netPayAfterDeduction = isRenewal
-			? netPay - newDeduction + existingDeduction
-			: netPay - newDeduction;
+		const netPayAfterDeduction = computeNPAD(
+			netPay,
+			newDeduction,
+			existingDeduction,
+			isRenewal,
+		);
 
 		// NPAD Validation
 		const isNPADValid = netPayAfterDeduction >= 5000;
@@ -66,122 +79,23 @@ app.post('/applications', async (req, res) => {
 		);
 
 		// Co maker validation
-		const isCoMakerValid = hasSalaryInputs
-			? coMakerGrade > borrowerGrade ||
-				(coMakerGrade === borrowerGrade && coMakerStep >= borrowerStep)
-			: true;
+		const isCoMakerValid = validateCoMaker(
+			coMakerGrade,
+			borrowerGrade,
+			coMakerStep,
+			borrowerStep,
+			hasSalaryInputs,
+		);
 
 		// UNDE Loan Validation
 		const isUndeValid = !formData.flags.hasUndeLoan;
 
 		// Correction Reasons
-		const correctionReasons: string[] = [];
-
-		// Check fields one by one
-		if (!formData.borrower.fullName) {
-			correctionReasons.push("Missing Borrower's Full Name");
-		}
-
-		if (!formData.borrower.code) {
-			correctionReasons.push("Missing Borrower's code/sta");
-		}
-
-		if (!formData.borrower.lafNumber) {
-			correctionReasons.push("Missing Borrower's LAF No.");
-		}
-
-		if (!formData.coMaker.name) {
-			correctionReasons.push("Missing Co-Maker's Full Name");
-		}
-
-		if (!formData.loan.loanAmount) {
-			correctionReasons.push('Missing Loan Amount');
-		}
-
-		if (!formData.loan.accountNumber) {
-			correctionReasons.push('Missing Account Number');
-		}
-
-		if (!formData.borrower.employeeNumber) {
-			correctionReasons.push("Missing Borrower's Employee Number");
-		}
-
-		if (!formData.coMaker.employeeNumber) {
-			correctionReasons.push("Missing Co-Maker's Employee Number");
-		}
-
-		if (!formData.loan.loanType) {
-			correctionReasons.push('Missing Loan Type');
-		}
-
-		if (!formData.checklist.soa && formData.loan.loanType === 'Renewal') {
-			correctionReasons.push('SOA is required for renewal');
-		}
-
-		if (!formData.checklist.payslipReadable) {
-			correctionReasons.push('Payslip is not readable');
-		}
-
-		if (!formData.checklist.authorizationFormComplete) {
-			correctionReasons.push('Authorization form is not complete');
-		}
-
-		if (!formData.checklist.payslipOriginal) {
-			correctionReasons.push('Payslip of borrower is not original');
-		}
-
-		if (!formData.checklist.supportingDocuments) {
-			correctionReasons.push('Missing or insufficient supporting documents');
-		}
-
-		if (!formData.checklist.photocopyOfId) {
-			correctionReasons.push('Missing Photocopy of ID');
-		}
-
-		if (!formData.checklist.photocopyOfAtm) {
-			correctionReasons.push('Missing Photocopy of ATM');
-		}
-
-		if (!formData.checklist.accountNumberVerified) {
-			correctionReasons.push('Account number is not verified');
-		}
-
-		if (!formData.loan.term) {
-			correctionReasons.push('Missing Term');
-		}
-
-		if (!formData.loan.purpose) {
-			correctionReasons.push('Missing Loan Purpose');
-		}
-
-		if (isRenewal && (finalLoanGranted ?? 0) <= 0) {
-			correctionReasons.push(
-				'Requested amount is too low after deducting existing balance. Consider increasing loan amount.',
-			);
-		}
-
-		if (!formData.checklist.loanApplicationForm) {
-			correctionReasons.push('Missing Loan Application Form');
-		}
-
-		if (!formData.checklist.authorizationSalaryDeduction) {
-			correctionReasons.push(
-				'Authorization for Salary Deduction fields are empty',
-			);
-		}
-
-		if (!formData.checklist.latestPayslip) {
-			correctionReasons.push('Payslip is not latest');
-		}
-
-		if (!formData.checklist.approvedAppointment) {
-			correctionReasons.push('Appointment is not approved');
-		}
-
-		if (!formData.checklist.coMakerDocuments) {
-			correctionReasons.push('Missing Co-maker documents');
-		}
-
+		const correctionReasons = generateCorrectionReasons(
+			formData,
+			isRenewal,
+			finalLoanGranted,
+		);
 		const hasCorrections = correctionReasons.length > 0;
 
 		// Reject only if value exist
@@ -191,16 +105,8 @@ app.post('/applications', async (req, res) => {
 			!isUndeValid ||
 			!isThirtyPercentPaidValid;
 
-		let status = 'Pending';
-
-		// Status logic
-		if (isRejected) {
-			status = 'Rejected';
-		} else if (hasCorrections) {
-			status = 'Needs Correction';
-		} else {
-			status = 'Ready for Processing';
-		}
+		// Compute status
+		const status = computeStatus(isRejected, hasCorrections);
 
 		// Take the data from frontend and save it to MongoDB
 		// create() = INSERT data into database
