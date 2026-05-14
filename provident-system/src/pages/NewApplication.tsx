@@ -132,6 +132,8 @@ function NewApplication() {
 
 	// Back end result state
 	const [result, setResult] = useState<BackendResult | null>(null);
+	const [successMessage, setSuccessMessage] = useState('');
+	const [errorMessage, setErrorMessage] = useState('');
 
 	const handleBorrowerChange = (
 		field: keyof FormData['borrower'],
@@ -221,11 +223,14 @@ function NewApplication() {
 			const data = await response.json();
 
 			if (!response.ok) {
-				console.error(data.message);
+				setErrorMessage(data.message || 'Something went wrong');
+				setSuccessMessage('');
 				return;
 			}
 
 			setResult(data);
+			setSuccessMessage(data.message || 'Application submitted successfully');
+			setErrorMessage('');
 		} catch (error) {
 			console.error('Error', error);
 		}
@@ -770,6 +775,16 @@ function NewApplication() {
 						)}
 					</div>
 				</section>
+
+				{successMessage && (
+					<p className='bg-green-100 text-green-700 p-3 rounded'>
+						{successMessage}
+					</p>
+				)}
+
+				{errorMessage && (
+					<p className='bg-red-100 text-red-700 p-3 rounded'>{errorMessage}</p>
+				)}
 
 				<button
 					type='submit'
