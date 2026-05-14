@@ -20,10 +20,12 @@ app.post('/applications', async (req, res) => {
 		// Evaluation fields
 		const netPay = Number(formData.evaluation.netPay);
 		const newDeduction = Number(formData.evaluation.newDeduction);
-		const existingDeduction = Number(formData.evaluation.existingDeduction);
-		const existingBalance = Number(formData.evaluation.existingBalance);
+		const existingDeduction = Number(
+			formData.evaluation.existingDeduction || 0,
+		);
+		const existingBalance = Number(formData.evaluation.existingBalance || 0);
 		const percentPrincipalPaid = Number(
-			formData.evaluation.percentPrincipalPaid,
+			formData.evaluation.percentPrincipalPaid || 0,
 		);
 
 		// Requested Loan Amount
@@ -78,6 +80,14 @@ app.post('/applications', async (req, res) => {
 		// Check fields one by one
 		if (!formData.borrower.fullName) {
 			correctionReasons.push("Missing Borrower's Full Name");
+		}
+
+		if (!formData.borrower.code) {
+			correctionReasons.push("Missing Borrower's code/sta");
+		}
+
+		if (!formData.borrower.lafNumber) {
+			correctionReasons.push("Missing Borrower's LAF No.");
 		}
 
 		if (!formData.coMaker.name) {

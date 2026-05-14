@@ -8,6 +8,8 @@ type FormData = {
 		employeeNumber: string;
 		school: string;
 		position: string;
+		code: string;
+		lafNumber: string;
 		salaryGrade: string;
 		salaryStep: string;
 	};
@@ -81,6 +83,8 @@ function NewApplication() {
 			employeeNumber: '',
 			school: '',
 			position: '',
+			code: '',
+			lafNumber: '',
 			salaryGrade: '',
 			salaryStep: '',
 		},
@@ -282,6 +286,25 @@ function NewApplication() {
 							value={formData.borrower.position}
 							onChange={(e) => handleBorrowerChange('position', e.target.value)}
 						/>
+
+						<input
+							type='number'
+							placeholder='Code/Sta'
+							className='border p-2 rounded'
+							value={formData.borrower.code}
+							onChange={(e) => handleBorrowerChange('code', e.target.value)}
+						/>
+
+						<input
+							type='number'
+							placeholder='LAF No.'
+							className='border p-2 rounded'
+							value={formData.borrower.lafNumber}
+							onChange={(e) =>
+								handleBorrowerChange('lafNumber', e.target.value)
+							}
+						/>
+
 						<input
 							type='number'
 							placeholder='Salary Grade'

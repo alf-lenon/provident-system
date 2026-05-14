@@ -8,6 +8,8 @@ const applicationSchema = new mongoose.Schema(
 			employeeNumber: { type: String, required: true },
 			school: { type: String, required: true },
 			position: { type: String, required: true },
+			code: { type: String, required: true },
+			lafNumber: String,
 			salaryGrade: String,
 			salaryStep: String,
 		},
