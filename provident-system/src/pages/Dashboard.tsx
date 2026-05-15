@@ -32,6 +32,7 @@ type Application = {
 		netPayAfterDeduction: number;
 		finalLoanGranted: number;
 		remarks: string[];
+		rejectionReasons: string[];
 	};
 };
 function Dashboard() {
@@ -315,6 +316,29 @@ function Dashboard() {
 								</div>
 							</section>
 
+							{selectedApplication.evaluation.status === 'Rejected' && (
+								<section className='md:col-span-2'>
+									<h3 className='font-semibold text-red-700 mb-3'>
+										Rejection Reasons
+									</h3>
+
+									{selectedApplication.evaluation.rejectionReasons.length >
+									0 ? (
+										<ul className='list-disc list-inside text-sm text-red-700 space-y-1'>
+											{selectedApplication.evaluation.rejectionReasons.map(
+												(reason, index) => (
+													<li key={index}>{reason}</li>
+												),
+											)}
+										</ul>
+									) : (
+										<p className='text-sm text-gray-500'>
+											No rejection reason recorded.
+										</p>
+									)}
+								</section>
+							)}
+
 							<section className='md:col-span-2'>
 								<h3 className='font-semibold text-gray-800 mb-3'>Remarks</h3>
 
@@ -327,9 +351,7 @@ function Dashboard() {
 										)}
 									</ul>
 								) : (
-									<p className='text-sm text-green-600'>
-										No issues found. Application is ready for processing.
-									</p>
+									<p className='text-sm text-green-600'>No corrections.</p>
 								)}
 							</section>
 						</div>

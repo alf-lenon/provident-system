@@ -4,6 +4,7 @@ import {
 	validateCoMaker,
 	computeStatus,
 	generateCorrectionReasons,
+	generateRejectionReasons,
 } from './utils/evaluation';
 
 import ApplicationModel from './models/Application';
@@ -98,12 +99,14 @@ app.post('/applications', async (req, res) => {
 		);
 		const hasCorrections = correctionReasons.length > 0;
 
-		// Reject only if value exist
-		const isRejected =
-			!isCoMakerValid ||
-			!isNPADValid ||
-			!isUndeValid ||
-			!isThirtyPercentPaidValid;
+		const rejectionReasons = generateRejectionReasons(
+			isCoMakerValid,
+			isNPADValid,
+			isUndeValid,
+			isThirtyPercentPaidValid,
+		);
+
+		const isRejected = rejectionReasons.length > 0;
 
 		// Compute status
 		const status = computeStatus(isRejected, hasCorrections);
@@ -125,6 +128,7 @@ app.post('/applications', async (req, res) => {
 				isUndeValid,
 				status,
 				remarks: correctionReasons,
+				rejectionReasons,
 			},
 		});
 

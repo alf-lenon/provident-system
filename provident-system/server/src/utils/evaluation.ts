@@ -168,3 +168,30 @@ export const generateCorrectionReasons = (
 
 	return correctionReasons;
 };
+
+export const generateRejectionReasons = (
+	isCoMakerValid: boolean,
+	isNPADValid: boolean,
+	isUndeValid: boolean,
+	isThirtyPercentPaidValid: boolean,
+) => {
+	const rejectionReasons: string[] = [];
+
+	if (!isCoMakerValid) {
+		rejectionReasons.push('Co-maker salary is not valid');
+	}
+
+	if (!isNPADValid) {
+		rejectionReasons.push('Net Pay After Deduction is below ₱5,000');
+	}
+
+	if (!isUndeValid) {
+		rejectionReasons.push('Borrower has UNDE loan');
+	}
+
+	if (!isThirtyPercentPaidValid) {
+		rejectionReasons.push('Renewal loan is below the 30% paid rule');
+	}
+
+	return rejectionReasons;
+};

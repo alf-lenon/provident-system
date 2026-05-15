@@ -75,6 +75,7 @@ const applicationSchema = new mongoose.Schema(
 			isUndeValid: Boolean,
 			status: String,
 			remarks: [String], // array of reasons
+			rejectionReasons: [String],
 		},
 	},
 	{
