@@ -9,17 +9,17 @@ const applicationSchema = new mongoose.Schema(
 			school: { type: String, required: true },
 			position: { type: String, required: true },
 			code: { type: String, required: true },
-			lafNumber: String,
-			salaryGrade: String,
-			salaryStep: String,
+			lafNumber: { type: String, required: true },
+			salaryGrade: { type: String, required: true },
+			salaryStep: { type: String, required: true },
 		},
 
 		coMaker: {
 			name: { type: String, required: [true, 'Full name is required'] },
 			employeeNumber: { type: String, required: true },
 			contactNumber: { type: String, required: true },
-			salaryGrade: String,
-			salaryStep: String,
+			salaryGrade: { type: String, required: true },
+			salaryStep: { type: String, required: true },
 		},
 
 		loan: {
@@ -30,7 +30,7 @@ const applicationSchema = new mongoose.Schema(
 				required: [true, 'Account number is required'],
 			},
 			term: { type: String, required: [true, 'Term is required'] },
-			purpose: String,
+			purpose: { type: String, required: true },
 		},
 
 		flags: {
