@@ -188,53 +188,92 @@ function Dashboard() {
 						</select>
 					</div>
 
-					<div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
-						{filteredApplications.length === 0 && (
-							<p className='text-center text-gray-500 py-8'>
-								No applications found.
-							</p>
-						)}
-						{filteredApplications.map((app, index) => (
-							<div
-								key={index}
-								className='border border-gray-200 rounded-xl p-4 hover:shadow-md transition'
-							>
-								<div className='flex justify-between gap-4 mb-3'>
-									<div>
-										<h3 className='font-semibold text-gray-800'>
-											{app.borrower.fullName}
-										</h3>
-										<p className='text-sm text-gray-500'>
-											{app.loan.loanType} Loan
-										</p>
-									</div>
+					<div className='overflow-x-auto'>
+						<table className='min-w-full divide-y divide-gray-200'>
+							<thead className='bg-gray-50'>
+								<tr>
+									<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
+										Borrower
+									</th>
 
-									<span
-										className={
-											app.evaluation.status === 'Ready for Processing'
-												? 'bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full font-medium h-fit'
-												: app.evaluation.status === 'Needs Correction'
-													? 'bg-yellow-100 text-yellow-700 text-xs px-3 py-1 rounded-full font-medium h-fit'
-													: 'bg-red-100 text-red-700 text-xs px-3 py-1 rounded-full font-medium h-fit'
-										}
-									>
-										{app.evaluation.status}
-									</span>
-								</div>
+									<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
+										Loan Type
+									</th>
 
-								<p className='text-sm text-gray-700 mb-4'>
-									<span className='font-medium'>Loan Amount:</span> ₱
-									{Number(app.loan.loanAmount).toLocaleString('en-PH')}
-								</p>
+									<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
+										Loan Amount
+									</th>
 
-								<button
-									onClick={() => setSelectedApplication(app)}
-									className='w-full bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition'
-								>
-									View Details
-								</button>
-							</div>
-						))}
+									<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
+										Status
+									</th>
+
+									<th className='px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase'>
+										Actions
+									</th>
+								</tr>
+							</thead>
+
+							<tbody className='bg-white divide-y divide-gray-100'>
+								{filteredApplications.length === 0 && (
+									<tr>
+										<td
+											colSpan={5}
+											className='px-6 py-8 text-center text-gray-500'
+										>
+											No applications found.
+										</td>
+									</tr>
+								)}
+
+								{filteredApplications.map((app, index) => (
+									<tr key={index} className='hover:bg-gray-50 transition'>
+										<td className='px-6 py-4'>
+											<div>
+												<p className='font-semibold text-gray-800'>
+													{app.borrower.fullName}
+												</p>
+
+												<p className='text-sm text-gray-500'>
+													Code: {app.borrower.code}
+												</p>
+											</div>
+										</td>
+
+										<td className='px-6 py-4 text-gray-700'>
+											{app.loan.loanType}
+										</td>
+
+										<td className='px-6 py-4 text-gray-700'>
+											₱{Number(app.loan.loanAmount).toLocaleString('en-PH')}
+										</td>
+
+										<td className='px-6 py-4'>
+											<span
+												className={
+													app.evaluation.status === 'Ready for Processing'
+														? 'bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium'
+														: app.evaluation.status === 'Needs Correction'
+															? 'bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium'
+															: 'bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-medium'
+												}
+											>
+												{app.evaluation.status}
+											</span>
+										</td>
+
+										<td className='px-6 py-4 text-center'>
+											<button
+												onClick={() => setSelectedApplication(app)}
+												className='bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition'
+											>
+												View
+											</button>
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
 					</div>
 				</div>
 			</section>
