@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 
 // TypeScript
 type Application = {
+	createdAt: string;
+
 	borrower: {
 		fullName: string;
 		code: string;
@@ -205,6 +207,10 @@ function Dashboard() {
 									</th>
 
 									<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
+										Date Processed
+									</th>
+
+									<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
 										Status
 									</th>
 
@@ -218,7 +224,7 @@ function Dashboard() {
 								{filteredApplications.length === 0 && (
 									<tr>
 										<td
-											colSpan={5}
+											colSpan={6}
 											className='px-6 py-8 text-center text-gray-500'
 										>
 											No applications found.
@@ -246,6 +252,14 @@ function Dashboard() {
 
 										<td className='px-6 py-4 text-gray-700'>
 											₱{Number(app.loan.loanAmount).toLocaleString('en-PH')}
+										</td>
+
+										<td className='px-6 py-4 text-gray-700'>
+											{new Date(app.createdAt).toLocaleDateString('en-PH', {
+												year: 'numeric',
+												month: 'short',
+												day: 'numeric',
+											})}
 										</td>
 
 										<td className='px-6 py-4'>
