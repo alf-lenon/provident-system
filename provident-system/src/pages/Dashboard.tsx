@@ -41,6 +41,9 @@ function Dashboard() {
 	const [selectedApplication, setSelectedApplication] =
 		useState<Application | null>(null);
 
+	const [searchTerm, setSearchTerm] = useState('');
+	const [statusFilter, setStatusFilter] = useState('All');
+
 	useEffect(() => {
 		const fetchApplications = async () => {
 			try {
@@ -53,6 +56,18 @@ function Dashboard() {
 		};
 		fetchApplications();
 	}, []);
+
+	// Filter and Search System
+	const filteredApplications = applications.filter((app) => {
+		const matchesSearch = app.borrower.fullName
+			.toLowerCase()
+			.includes(searchTerm.toLowerCase());
+
+		const matchesStatus =
+			statusFilter === 'All' || app.evaluation.status === statusFilter;
+
+		return matchesSearch && matchesStatus;
+	});
 	return (
 		<main className='min-h-screen bg-gray-100 flex'>
 			{/* Sidebar */}
@@ -152,8 +167,34 @@ function Dashboard() {
 						</h2>
 					</div>
 
+					<div className='flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5'>
+						<input
+							type='text'
+							placeholder='Search by borrower name...'
+							className='border border-gray-300 rounded-lg px-4 py-2 w-full md:max-w-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+							value={searchTerm}
+							onChange={(e) => setSearchTerm(e.target.value)}
+						/>
+
+						<select
+							className='border border-gray-300 rounded-lg px-4 py-2 w-full md:w-56 focus:outline-none focus:ring-2 focus:ring-blue-500'
+							value={statusFilter}
+							onChange={(e) => setStatusFilter(e.target.value)}
+						>
+							<option value='All'>All Status</option>
+							<option value='Ready for Processing'>Ready for Processing</option>
+							<option value='Needs Correction'>Needs Correction</option>
+							<option value='Rejected'>Rejected</option>
+						</select>
+					</div>
+
 					<div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
-						{applications.map((app, index) => (
+						{filteredApplications.length === 0 && (
+							<p className='text-center text-gray-500 py-8'>
+								No applications found.
+							</p>
+						)}
+						{filteredApplications.map((app, index) => (
 							<div
 								key={index}
 								className='border border-gray-200 rounded-xl p-4 hover:shadow-md transition'
@@ -206,6 +247,52 @@ function Dashboard() {
 								<h2 className='text-xl font-bold text-gray-800'>
 									Application Details
 								</h2>
+
+								<div className='grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 mb-6'>
+									{/* Status */}
+									<div className='bg-white border rounded-xl p-4 shadow-sm'>
+										<p className='text-sm text-gray-500'>Status</p>
+
+										<span
+											className={
+												selectedApplication.evaluation.status ===
+												'Ready for Processing'
+													? 'inline-block mt-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium'
+													: selectedApplication.evaluation.status ===
+														  'Needs Correction'
+														? 'inline-block mt-2 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-medium'
+														: 'inline-block mt-2 bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-medium'
+											}
+										>
+											{selectedApplication.evaluation.status}
+										</span>
+									</div>
+
+									{/* NPAD */}
+									<div className='bg-white border rounded-xl p-4 shadow-sm'>
+										<p className='text-sm text-gray-500'>NPAD</p>
+
+										<p className='text-xl font-bold text-gray-800 mt-2'>
+											₱
+											{selectedApplication.evaluation.netPayAfterDeduction.toLocaleString(
+												'en-PH',
+											)}
+										</p>
+									</div>
+
+									{/* Loan Granted */}
+									<div className='bg-white border rounded-xl p-4 shadow-sm'>
+										<p className='text-sm text-gray-500'>Final Loan Granted</p>
+
+										<p className='text-xl font-bold text-gray-800 mt-2'>
+											₱
+											{selectedApplication.evaluation.finalLoanGranted.toLocaleString(
+												'en-PH',
+											)}
+										</p>
+									</div>
+								</div>
+
 								<p className='text-sm text-gray-500'>
 									Complete borrower and loan information
 								</p>
@@ -220,7 +307,7 @@ function Dashboard() {
 						</div>
 
 						<div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-							<section>
+							<section className='bg-gray-50 border border-gray-200 rounded-xl p-5'>
 								<h3 className='font-semibold text-gray-800 mb-3'>
 									Borrower Information
 								</h3>
@@ -234,7 +321,7 @@ function Dashboard() {
 								</div>
 							</section>
 
-							<section>
+							<section className='bg-gray-50 border border-gray-200 rounded-xl p-5'>
 								<h3 className='font-semibold text-gray-800 mb-3'>
 									Loan Information
 								</h3>
@@ -255,7 +342,7 @@ function Dashboard() {
 								</div>
 							</section>
 
-							<section>
+							<section className='bg-gray-50 border border-gray-200 rounded-xl p-5'>
 								<h3 className='font-semibold text-gray-800 mb-3'>
 									Co-maker Information
 								</h3>
@@ -268,7 +355,7 @@ function Dashboard() {
 								</div>
 							</section>
 
-							<section>
+							<section className='bg-gray-50 border border-gray-200 rounded-xl p-5'>
 								<h3 className='font-semibold text-gray-800 mb-3'>Evaluation</h3>
 								<div className='space-y-2 text-sm text-gray-700'>
 									<p>
@@ -312,12 +399,28 @@ function Dashboard() {
 										).toLocaleString('en-PH')}
 									</p>
 
-									<p>Status: {selectedApplication.evaluation.status}</p>
+									<div className='flex items-center gap-2'>
+										<span className='font-medium text-gray-700'>Status:</span>
+
+										<span
+											className={
+												selectedApplication.evaluation.status ===
+												'Ready for Processing'
+													? 'bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium'
+													: selectedApplication.evaluation.status ===
+														  'Needs Correction'
+														? 'bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-medium'
+														: 'bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-medium'
+											}
+										>
+											{selectedApplication.evaluation.status}
+										</span>
+									</div>
 								</div>
 							</section>
 
 							{selectedApplication.evaluation.status === 'Rejected' && (
-								<section className='md:col-span-2'>
+								<section className='md:col-span-2 bg-red-50 border border-red-200 rounded-xl p-5'>
 									<h3 className='font-semibold text-red-700 mb-3'>
 										Rejection Reasons
 									</h3>
@@ -339,7 +442,7 @@ function Dashboard() {
 								</section>
 							)}
 
-							<section className='md:col-span-2'>
+							<section className='md:col-span-2 bg-gray-50 border border-gray-200 rounded-xl p-5'>
 								<h3 className='font-semibold text-gray-800 mb-3'>Remarks</h3>
 
 								{selectedApplication.evaluation.remarks.length > 0 ? (
