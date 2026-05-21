@@ -12,11 +12,15 @@ type Application = {
 		employeeNumber: string;
 		school: string;
 		position: string;
+		salaryGrade: string;
+		salaryStep: string;
 	};
 	coMaker: {
 		name: string;
 		employeeNumber: string;
 		contactNumber: string;
+		salaryGrade: string;
+		salaryStep: string;
 	};
 	loan: {
 		loanAmount: string;
@@ -36,6 +40,26 @@ type Application = {
 		finalLoanGranted: number;
 		remarks: string[];
 		rejectionReasons: string[];
+	};
+
+	checklist: {
+		soa: boolean;
+		payslipReadable: boolean;
+		payslipOriginal: boolean;
+		authorizationFormComplete: boolean;
+		supportingDocuments: boolean;
+		photocopyOfId: boolean;
+		photocopyOfAtm: boolean;
+		accountNumberVerified: boolean;
+		loanApplicationForm: boolean;
+		authorizationSalaryDeduction: boolean;
+		latestPayslip: boolean;
+		approvedAppointment: boolean;
+		coMakerDocuments: boolean;
+	};
+
+	flags: {
+		hasUndeLoan: boolean;
 	};
 };
 function Dashboard() {
@@ -152,15 +176,6 @@ function Dashboard() {
 					</button>
 					<button className='w-full text-left px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100'>
 						Applications
-					</button>
-					<button className='w-full text-left px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100'>
-						Ready for Processing
-					</button>
-					<button className='w-full text-left px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100'>
-						Needs Correction
-					</button>
-					<button className='w-full text-left px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100'>
-						Rejected
 					</button>
 				</nav>
 			</aside>
@@ -448,8 +463,13 @@ function Dashboard() {
 									<p>
 										Employee No: {selectedApplication.borrower.employeeNumber}
 									</p>
+
 									<p>Code: {selectedApplication.borrower.code}</p>
 									<p>LAF No: {selectedApplication.borrower.lafNumber}</p>
+									<p>
+										Salary Grade: {selectedApplication.borrower.salaryGrade}
+									</p>
+									<p>Salary Step {selectedApplication.borrower.salaryStep}</p>
 								</div>
 							</section>
 
@@ -484,6 +504,8 @@ function Dashboard() {
 										Employee No: {selectedApplication.coMaker.employeeNumber}
 									</p>
 									<p>Contact No: {selectedApplication.coMaker.contactNumber}</p>
+									<p>Salary Grade: {selectedApplication.coMaker.salaryGrade}</p>
+									<p>Salary Step: {selectedApplication.coMaker.salaryStep}</p>
 								</div>
 							</section>
 
@@ -596,7 +618,7 @@ function Dashboard() {
 
 			{editingApplication && (
 				<div className='fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50'>
-					<div className='bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6'>
+					<div className='bg-white rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6'>
 						<div className='flex justify-between items-center border-b pb-4 mb-6'>
 							<h2 className='text-xl font-bold text-gray-800'>
 								Edit Application
@@ -610,34 +632,591 @@ function Dashboard() {
 							</button>
 						</div>
 
-						<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-							<input
-								className='border p-2 rounded'
-								value={editingApplication.borrower.fullName}
-								onChange={(e) =>
-									setEditingApplication({
-										...editingApplication,
-										borrower: {
-											...editingApplication.borrower,
-											fullName: e.target.value,
-										},
-									})
-								}
-							/>
+						<div className='space-y-6'>
+							<section className='bg-gray-50 border border-gray-200 rounded-xl p-5'>
+								<h3 className='font-semibold text-gray-800 mb-4'>
+									Borrower Information
+								</h3>
 
-							<input
-								className='border p-2 rounded'
-								value={editingApplication.loan.loanAmount}
-								onChange={(e) =>
-									setEditingApplication({
-										...editingApplication,
-										loan: {
-											...editingApplication.loan,
-											loanAmount: e.target.value,
-										},
-									})
-								}
-							/>
+								<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											Full Name
+										</label>
+										<input
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.borrower.fullName}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													borrower: {
+														...editingApplication.borrower,
+														fullName: e.target.value,
+													},
+												})
+											}
+										/>
+									</div>
+
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											Employee Number
+										</label>
+										<input
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.borrower.employeeNumber}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													borrower: {
+														...editingApplication.borrower,
+														employeeNumber: e.target.value,
+													},
+												})
+											}
+										/>
+									</div>
+
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											School / Office
+										</label>
+										<input
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.borrower.school}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													borrower: {
+														...editingApplication.borrower,
+														school: e.target.value,
+													},
+												})
+											}
+										/>
+									</div>
+
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											Position
+										</label>
+										<input
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.borrower.position}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													borrower: {
+														...editingApplication.borrower,
+														position: e.target.value,
+													},
+												})
+											}
+										/>
+									</div>
+
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											Code / STA
+										</label>
+										<input
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.borrower.code}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													borrower: {
+														...editingApplication.borrower,
+														code: e.target.value,
+													},
+												})
+											}
+										/>
+									</div>
+
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											LAF Number
+										</label>
+										<input
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.borrower.lafNumber}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													borrower: {
+														...editingApplication.borrower,
+														lafNumber: e.target.value,
+													},
+												})
+											}
+										/>
+									</div>
+
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											Salary Grade
+										</label>
+										<input
+											type='number'
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.borrower.salaryGrade}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													borrower: {
+														...editingApplication.borrower,
+														salaryGrade: e.target.value,
+													},
+												})
+											}
+										/>
+									</div>
+
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											Salary Step
+										</label>
+										<input
+											type='number'
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.borrower.salaryStep}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													borrower: {
+														...editingApplication.borrower,
+														salaryStep: e.target.value,
+													},
+												})
+											}
+										/>
+									</div>
+								</div>
+							</section>
+
+							<section className='bg-gray-50 border border-gray-200 rounded-xl p-5'>
+								<h3 className='font-semibold text-gray-800 mb-4'>
+									Co-maker Information
+								</h3>
+
+								<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											Co-maker Name
+										</label>
+
+										<input
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.coMaker.name}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													coMaker: {
+														...editingApplication.coMaker,
+														name: e.target.value,
+													},
+												})
+											}
+										/>
+									</div>
+
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											Employee Number
+										</label>
+
+										<input
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.coMaker.employeeNumber}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													coMaker: {
+														...editingApplication.coMaker,
+														employeeNumber: e.target.value,
+													},
+												})
+											}
+										/>
+									</div>
+
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											Contact Number
+										</label>
+
+										<input
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.coMaker.contactNumber}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													coMaker: {
+														...editingApplication.coMaker,
+														contactNumber: e.target.value,
+													},
+												})
+											}
+										/>
+									</div>
+
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											Salary Grade
+										</label>
+
+										<input
+											type='number'
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.coMaker.salaryGrade}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													coMaker: {
+														...editingApplication.coMaker,
+														salaryGrade: e.target.value,
+													},
+												})
+											}
+										/>
+									</div>
+
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											Salary Step
+										</label>
+
+										<input
+											type='number'
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.coMaker.salaryStep}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													coMaker: {
+														...editingApplication.coMaker,
+														salaryStep: e.target.value,
+													},
+												})
+											}
+										/>
+									</div>
+								</div>
+							</section>
+
+							<section className='bg-gray-50 border border-gray-200 rounded-xl p-5'>
+								<h3 className='font-semibold text-gray-800 mb-4'>
+									Loan Information
+								</h3>
+
+								<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											Loan Type
+										</label>
+
+										<select
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.loan.loanType}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													loan: {
+														...editingApplication.loan,
+														loanType: e.target.value,
+													},
+												})
+											}
+										>
+											<option value=''>Select Loan Type</option>
+											<option value='New'>New</option>
+											<option value='Renewal'>Renewal</option>
+											<option value='Additional'>Additional</option>
+										</select>
+									</div>
+
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											Loan Amount
+										</label>
+
+										<input
+											type='number'
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.loan.loanAmount}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													loan: {
+														...editingApplication.loan,
+														loanAmount: e.target.value,
+													},
+												})
+											}
+										/>
+									</div>
+
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											Account Number
+										</label>
+
+										<input
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.loan.accountNumber}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													loan: {
+														...editingApplication.loan,
+														accountNumber: e.target.value,
+													},
+												})
+											}
+										/>
+									</div>
+
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											Term
+										</label>
+
+										<select
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.loan.term}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													loan: {
+														...editingApplication.loan,
+														term: e.target.value,
+													},
+												})
+											}
+										>
+											<option value=''>Select Term</option>
+											<option value='12 months'>12 months</option>
+											<option value='24 months'>24 months</option>
+											<option value='36 months'>36 months</option>
+											<option value='48 months'>48 months</option>
+											<option value='60 months'>60 months</option>
+										</select>
+									</div>
+
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											Purpose
+										</label>
+
+										<select
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.loan.purpose}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													loan: {
+														...editingApplication.loan,
+														purpose: e.target.value,
+													},
+												})
+											}
+										>
+											<option value=''>Select Purpose</option>
+											<option value='Educational'>Educational</option>
+											<option value='Medical'>Medical</option>
+											<option value='House Repair'>House Repair</option>
+											<option value='Others'>Others</option>
+										</select>
+									</div>
+								</div>
+							</section>
+
+							<section className='bg-gray-50 border border-gray-200 rounded-xl p-5'>
+								<h3 className='font-semibold text-gray-800 mb-4'>Evaluation</h3>
+
+								<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											Net Pay
+										</label>
+
+										<input
+											type='number'
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.evaluation.netPay}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													evaluation: {
+														...editingApplication.evaluation,
+														netPay: Number(e.target.value),
+													},
+												})
+											}
+										/>
+									</div>
+
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											Monthly Amortization / New Deduction
+										</label>
+
+										<input
+											type='number'
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.evaluation.newDeduction}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													evaluation: {
+														...editingApplication.evaluation,
+														newDeduction: Number(e.target.value),
+													},
+												})
+											}
+										/>
+									</div>
+
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											Existing Deduction
+										</label>
+
+										<input
+											type='number'
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.evaluation.existingDeduction}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													evaluation: {
+														...editingApplication.evaluation,
+														existingDeduction: Number(e.target.value),
+													},
+												})
+											}
+										/>
+									</div>
+
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											Existing Balance
+										</label>
+
+										<input
+											type='number'
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.evaluation.existingBalance}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													evaluation: {
+														...editingApplication.evaluation,
+														existingBalance: Number(e.target.value),
+													},
+												})
+											}
+										/>
+									</div>
+
+									<div>
+										<label className='block text-sm font-medium text-gray-700 mb-1'>
+											% Principal Paid
+										</label>
+
+										<input
+											type='number'
+											className='border border-gray-300 p-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500'
+											value={editingApplication.evaluation.percentPrincipalPaid}
+											onChange={(e) =>
+												setEditingApplication({
+													...editingApplication,
+													evaluation: {
+														...editingApplication.evaluation,
+														percentPrincipalPaid: Number(e.target.value),
+													},
+												})
+											}
+										/>
+									</div>
+								</div>
+							</section>
+
+							<section className='bg-gray-50 border border-gray-200 rounded-xl p-5'>
+								<h3 className='font-semibold text-gray-800 mb-4'>
+									Checklist / Documents
+								</h3>
+
+								<div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
+									{[
+										['loanApplicationForm', 'Loan Application Form'],
+										[
+											'authorizationSalaryDeduction',
+											'Authorization for Salary Deduction',
+										],
+										['latestPayslip', 'Latest Payslip'],
+										['approvedAppointment', 'Approved Appointment'],
+										['coMakerDocuments', 'Co-maker Documents'],
+										['accountNumberVerified', 'Account Number Verified'],
+										['soa', 'SOA'],
+										[
+											'authorizationFormComplete',
+											'Authorization Form Complete',
+										],
+										['payslipReadable', 'Payslip is Readable'],
+										['payslipOriginal', 'Payslip is Original'],
+										['supportingDocuments', 'Supporting Documents'],
+										['photocopyOfId', 'Photocopy of ID'],
+										['photocopyOfAtm', 'Photocopy of ATM'],
+									].map(([field, label]) => (
+										<label
+											key={field}
+											className='flex items-center gap-2 text-sm text-gray-700'
+										>
+											<input
+												type='checkbox'
+												checked={
+													editingApplication.checklist[
+														field as keyof Application['checklist']
+													]
+												}
+												onChange={(e) =>
+													setEditingApplication({
+														...editingApplication,
+														checklist: {
+															...editingApplication.checklist,
+															[field]: e.target.checked,
+														},
+													})
+												}
+											/>
+											{label}
+										</label>
+									))}
+								</div>
+							</section>
+
+							<section className='bg-gray-50 border border-gray-200 rounded-xl p-5'>
+								<h3 className='font-semibold text-gray-800 mb-4'>Loan Flags</h3>
+
+								<label className='flex items-center gap-2 text-sm text-gray-700'>
+									<input
+										type='checkbox'
+										checked={editingApplication.flags.hasUndeLoan}
+										onChange={(e) =>
+											setEditingApplication({
+												...editingApplication,
+												flags: {
+													...editingApplication.flags,
+													hasUndeLoan: e.target.checked,
+												},
+											})
+										}
+									/>
+									Has UNDE Loan
+								</label>
+							</section>
 						</div>
 
 						<div className='flex justify-end gap-3 mt-6'>
