@@ -21,116 +21,108 @@ const PORT = 5000;
 app.use(cors());
 app.use(express.json()); // Parse incoming JSON data or Converts JSON string to object again.
 
+// Helper function
+const processApplicationData = (formData: any) => {
+	const netPay = Number(formData.evaluation.netPay);
+	const newDeduction = Number(formData.evaluation.newDeduction);
+	const existingDeduction = Number(formData.evaluation.existingDeduction || 0);
+	const existingBalance = Number(formData.evaluation.existingBalance || 0);
+	const percentPrincipalPaid = Number(
+		formData.evaluation.percentPrincipalPaid || 0,
+	);
+
+	const requestedLoanAmount = Number(formData.loan.loanAmount);
+	const isRenewal = formData.loan.loanType === 'Renewal';
+
+	const finalLoanGranted = computeFinalLoanGranted(
+		requestedLoanAmount,
+		existingBalance,
+		isRenewal,
+	);
+
+	const isThirtyPercentPaidValid = !isRenewal || percentPrincipalPaid >= 30;
+
+	const netPayAfterDeduction = computeNPAD(
+		netPay,
+		newDeduction,
+		existingDeduction,
+		isRenewal,
+	);
+
+	const isNPADValid = netPayAfterDeduction >= 5000;
+
+	const borrowerGrade = Number(formData.borrower.salaryGrade);
+	const borrowerStep = Number(formData.borrower.salaryStep);
+	const coMakerGrade = Number(formData.coMaker.salaryGrade);
+	const coMakerStep = Number(formData.coMaker.salaryStep);
+
+	const hasSalaryInputs = Boolean(
+		formData.borrower.salaryGrade &&
+		formData.borrower.salaryStep &&
+		formData.coMaker.salaryGrade &&
+		formData.coMaker.salaryStep,
+	);
+
+	const isCoMakerValid = validateCoMaker(
+		coMakerGrade,
+		borrowerGrade,
+		coMakerStep,
+		borrowerStep,
+		hasSalaryInputs,
+	);
+
+	const isUndeValid = !formData.flags.hasUndeLoan;
+
+	const correctionReasons = generateCorrectionReasons(
+		formData,
+		isRenewal,
+		finalLoanGranted,
+	);
+
+	const rejectionReasons = generateRejectionReasons(
+		isCoMakerValid,
+		isNPADValid,
+		isUndeValid,
+		isThirtyPercentPaidValid,
+	);
+
+	const hasCorrections = correctionReasons.length > 0;
+	const isRejected = rejectionReasons.length > 0;
+
+	const status = computeStatus(isRejected, hasCorrections);
+
+	return {
+		...formData,
+		evaluation: {
+			...formData.evaluation,
+			netPay,
+			newDeduction,
+			existingDeduction,
+			existingBalance,
+			percentPrincipalPaid,
+			netPayAfterDeduction,
+			isNPADValid,
+			isThirtyPercentPaidValid,
+			finalLoanGranted,
+			hasSalaryInputs,
+			isCoMakerValid,
+			isUndeValid,
+			status,
+			remarks: correctionReasons,
+			rejectionReasons,
+		},
+	};
+};
+
 // Save into database or Create new data
 app.post('/applications', async (req, res) => {
 	try {
 		const formData = req.body;
 
-		// Evaluation fields
-		const netPay = Number(formData.evaluation.netPay);
-		const newDeduction = Number(formData.evaluation.newDeduction);
-		const existingDeduction = Number(
-			formData.evaluation.existingDeduction || 0,
-		);
-		const existingBalance = Number(formData.evaluation.existingBalance || 0);
-		const percentPrincipalPaid = Number(
-			formData.evaluation.percentPrincipalPaid || 0,
-		);
-
-		// Requested Loan Amount
-		const requestedLoanAmount = Number(formData.loan.loanAmount);
-
-		// If Loan type is Renewal
-		const isRenewal = formData.loan.loanType === 'Renewal';
-
-		// Final Loan Granted
-		const finalLoanGranted = computeFinalLoanGranted(
-			requestedLoanAmount,
-			existingBalance,
-			isRenewal,
-		);
-
-		// Renewal Loan Type Principal Paid must be at least 30% rule
-		const isThirtyPercentPaidValid = !isRenewal || percentPrincipalPaid >= 30;
-
-		// Net Pay After Deduction
-		const netPayAfterDeduction = computeNPAD(
-			netPay,
-			newDeduction,
-			existingDeduction,
-			isRenewal,
-		);
-
-		// NPAD Validation
-		const isNPADValid = netPayAfterDeduction >= 5000;
-
-		// Borrower Informations
-		const borrowerGrade = Number(formData.borrower.salaryGrade);
-		const borrowerStep = Number(formData.borrower.salaryStep);
-
-		// Co maker Informations
-		const coMakerGrade = Number(formData.coMaker.salaryGrade);
-		const coMakerStep = Number(formData.coMaker.salaryStep);
-
-		const hasSalaryInputs = Boolean(
-			formData.borrower.salaryGrade &&
-			formData.borrower.salaryStep &&
-			formData.coMaker.salaryGrade &&
-			formData.coMaker.salaryStep,
-		);
-
-		// Co maker validation
-		const isCoMakerValid = validateCoMaker(
-			coMakerGrade,
-			borrowerGrade,
-			coMakerStep,
-			borrowerStep,
-			hasSalaryInputs,
-		);
-
-		// UNDE Loan Validation
-		const isUndeValid = !formData.flags.hasUndeLoan;
-
-		// Correction Reasons
-		const correctionReasons = generateCorrectionReasons(
-			formData,
-			isRenewal,
-			finalLoanGranted,
-		);
-		const hasCorrections = correctionReasons.length > 0;
-
-		const rejectionReasons = generateRejectionReasons(
-			isCoMakerValid,
-			isNPADValid,
-			isUndeValid,
-			isThirtyPercentPaidValid,
-		);
-
-		const isRejected = rejectionReasons.length > 0;
-
-		// Compute status
-		const status = computeStatus(isRejected, hasCorrections);
-
-		// Take the data from frontend and save it to MongoDB
-		// create() = INSERT data into database
-
 		//  Save everything
-		const newApplication = await ApplicationModel.create({
-			...formData,
-			evaluation: {
-				...formData.evaluation,
-				netPayAfterDeduction,
-				isNPADValid,
-				isThirtyPercentPaidValid,
-				finalLoanGranted,
-				hasSalaryInputs,
-				isCoMakerValid,
-				isUndeValid,
-				status,
-				remarks: correctionReasons,
-				rejectionReasons,
-			},
-		});
+		const processedData = processApplicationData(formData);
+
+		const newApplication = await ApplicationModel.create(processedData);
 
 		res.json({
 			message: 'Application processed and saved',
@@ -179,6 +171,42 @@ app.delete('/applications/:id', async (req, res) => {
 	}
 });
 
+// Update one application using its MongoDB _id
+app.put('/applications/:id', async (req, res) => {
+	try {
+		// Express automatically gives the req.params from '/applications/:id'
+		// Get the id and save it into variable
+		const { id } = req.params;
+
+		const processedData = processApplicationData(req.body);
+
+		// Find this application (id), then replace/update it with the new submitted data (processedData)
+		const updatedApplication = await ApplicationModel.findByIdAndUpdate(
+			id,
+			processedData,
+			{
+				new: true, // Return the updated version, not the old version.
+				runValidators: true, // Still follow our schema rules.
+			},
+		);
+
+		if (!updatedApplication) {
+			return res.status(404).json({
+				message: 'Application not found',
+			});
+		}
+
+		res.json({
+			message: 'Application updated successfully',
+			application: updatedApplication,
+		});
+	} catch (error: any) {
+		res.status(400).json({
+			message: 'Error updating application',
+			error: error.message,
+		});
+	}
+});
 app.listen(PORT, () => {
 	console.log(`Server running on http://localhost:${PORT}/applications`);
 });

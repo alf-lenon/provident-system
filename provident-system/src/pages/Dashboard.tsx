@@ -47,7 +47,10 @@ function Dashboard() {
 	const [searchTerm, setSearchTerm] = useState('');
 	const [statusFilter, setStatusFilter] = useState('All');
 
-	// Delete function
+	const [editingApplication, setEditingApplication] =
+		useState<Application | null>(null);
+
+	// Delete request to backend
 	const handleDelete = async (id: string) => {
 		const confirmDelete = window.confirm(
 			'Are you sure you want to delete this application?',
@@ -70,6 +73,41 @@ function Dashboard() {
 			setApplications((prev) => prev.filter((app) => app._id !== id));
 		} catch (error) {
 			console.error('Error deleting application:', error);
+		}
+	};
+
+	// Update || Edit request to backend
+	const handleUpdate = async () => {
+		if (!editingApplication) return;
+
+		try {
+			const response = await fetch(
+				`http://localhost:5000/applications/${editingApplication._id}`,
+				{
+					method: 'PUT',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify(editingApplication),
+				},
+			);
+
+			const data = await response.json();
+
+			if (!response.ok) {
+				alert(data.message || 'Failed to update application');
+				return;
+			}
+
+			setApplications((prev) =>
+				prev.map((app) =>
+					app._id === editingApplication._id ? data.application : app,
+				),
+			);
+
+			setEditingApplication(null);
+		} catch (error) {
+			console.error('Error updating application:', error);
 		}
 	};
 
@@ -309,6 +347,13 @@ function Dashboard() {
 												</button>
 
 												<button
+													onClick={() => setEditingApplication(app)}
+													className='bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition'
+												>
+													Edit
+												</button>
+
+												<button
 													onClick={() => handleDelete(app._id)}
 													className='bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition'
 												>
@@ -544,6 +589,71 @@ function Dashboard() {
 									<p className='text-sm text-green-600'>No corrections.</p>
 								)}
 							</section>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{editingApplication && (
+				<div className='fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50'>
+					<div className='bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6'>
+						<div className='flex justify-between items-center border-b pb-4 mb-6'>
+							<h2 className='text-xl font-bold text-gray-800'>
+								Edit Application
+							</h2>
+
+							<button
+								onClick={() => setEditingApplication(null)}
+								className='text-gray-500 hover:text-gray-800'
+							>
+								Close
+							</button>
+						</div>
+
+						<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+							<input
+								className='border p-2 rounded'
+								value={editingApplication.borrower.fullName}
+								onChange={(e) =>
+									setEditingApplication({
+										...editingApplication,
+										borrower: {
+											...editingApplication.borrower,
+											fullName: e.target.value,
+										},
+									})
+								}
+							/>
+
+							<input
+								className='border p-2 rounded'
+								value={editingApplication.loan.loanAmount}
+								onChange={(e) =>
+									setEditingApplication({
+										...editingApplication,
+										loan: {
+											...editingApplication.loan,
+											loanAmount: e.target.value,
+										},
+									})
+								}
+							/>
+						</div>
+
+						<div className='flex justify-end gap-3 mt-6'>
+							<button
+								onClick={() => setEditingApplication(null)}
+								className='px-4 py-2 rounded-lg border'
+							>
+								Cancel
+							</button>
+
+							<button
+								onClick={handleUpdate}
+								className='px-4 py-2 rounded-lg bg-blue-600 text-white'
+							>
+								Save Changes
+							</button>
 						</div>
 					</div>
 				</div>
