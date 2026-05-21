@@ -264,38 +264,50 @@ function NewApplication() {
 						<input
 							type='text'
 							placeholder='Full Name'
-							className='border p-2 rounded'
+							className='border p-2 rounded uppercase'
 							value={formData.borrower.fullName}
-							onChange={(e) => handleBorrowerChange('fullName', e.target.value)}
+							onChange={(e) =>
+								handleBorrowerChange(
+									'fullName',
+									e.target.value.toUpperCase().toUpperCase(),
+								)
+							}
 						/>
 						<input
 							type='text'
 							placeholder='Employee Number'
-							className='border p-2 rounded'
+							className='border p-2 rounded uppercase'
 							value={formData.borrower.employeeNumber}
 							onChange={(e) =>
-								handleBorrowerChange('employeeNumber', e.target.value)
+								handleBorrowerChange(
+									'employeeNumber',
+									e.target.value.toUpperCase(),
+								)
 							}
 						/>
 						<input
 							type='text'
 							placeholder='School / Office'
-							className='border p-2 rounded'
+							className='border p-2 rounded uppercase'
 							value={formData.borrower.school}
-							onChange={(e) => handleBorrowerChange('school', e.target.value)}
+							onChange={(e) =>
+								handleBorrowerChange('school', e.target.value.toUpperCase())
+							}
 						/>
 						<input
 							type='text'
 							placeholder='Position'
-							className='border p-2 rounded'
+							className='border p-2 rounded uppercase'
 							value={formData.borrower.position}
-							onChange={(e) => handleBorrowerChange('position', e.target.value)}
+							onChange={(e) =>
+								handleBorrowerChange('position', e.target.value.toUpperCase())
+							}
 						/>
 
 						<input
 							type='number'
 							placeholder='Code/Sta'
-							className='border p-2 rounded'
+							className='border p-2 rounded '
 							value={formData.borrower.code}
 							onChange={(e) => handleBorrowerChange('code', e.target.value)}
 						/>
@@ -335,26 +347,34 @@ function NewApplication() {
 						<input
 							type='text'
 							placeholder='Co-maker Name'
-							className='border p-2 rounded'
+							className='border p-2 rounded uppercase'
 							value={formData.coMaker.name}
-							onChange={(e) => handleCoMakerChange('name', e.target.value)}
+							onChange={(e) =>
+								handleCoMakerChange('name', e.target.value.toUpperCase())
+							}
 						/>
 						<input
 							type='text'
 							placeholder='Co-maker Employee Number'
-							className='border p-2 rounded'
+							className='border p-2 rounded uppercase'
 							value={formData.coMaker.employeeNumber}
 							onChange={(e) =>
-								handleCoMakerChange('employeeNumber', e.target.value)
+								handleCoMakerChange(
+									'employeeNumber',
+									e.target.value.toUpperCase(),
+								)
 							}
 						/>
 						<input
 							type='text'
 							placeholder='Co-maker Contact Number'
-							className='border p-2 rounded'
+							className='border p-2 rounded uppercase'
 							value={formData.coMaker.contactNumber}
 							onChange={(e) =>
-								handleCoMakerChange('contactNumber', e.target.value)
+								handleCoMakerChange(
+									'contactNumber',
+									e.target.value.toUpperCase(),
+								)
 							}
 						/>
 						<input
@@ -394,9 +414,11 @@ function NewApplication() {
 					<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
 						{/* Loan Type */}
 						<select
-							className='border p-2 rounded'
+							className='border p-2 rounded uppercase'
 							value={formData.loan.loanType}
-							onChange={(e) => handleLoanChange('loanType', e.target.value)}
+							onChange={(e) =>
+								handleLoanChange('loanType', e.target.value.toUpperCase())
+							}
 						>
 							<option value=''>Select Loan Type</option>
 							<option>New</option>
@@ -407,9 +429,11 @@ function NewApplication() {
 						{/* Purpose */}
 						<div>
 							<select
-								className='border p-2 rounded'
+								className='border p-2 rounded uppercase'
 								value={formData.loan.purpose}
-								onChange={(e) => handleLoanChange('purpose', e.target.value)}
+								onChange={(e) =>
+									handleLoanChange('purpose', e.target.value.toUpperCase())
+								}
 							>
 								<option value=''>Select Purpose</option>
 
@@ -435,9 +459,11 @@ function NewApplication() {
 
 						{/* Term */}
 						<select
-							className='border p-2 rounded'
+							className='border p-2 rounded uppercase'
 							value={formData.loan.term}
-							onChange={(e) => handleLoanChange('term', e.target.value)}
+							onChange={(e) =>
+								handleLoanChange('term', e.target.value.toUpperCase())
+							}
 						>
 							<option value=''>Select Term</option>
 							<option>12 months</option>
@@ -450,10 +476,10 @@ function NewApplication() {
 						<input
 							type='text'
 							placeholder='Account Number'
-							className='border p-2 rounded'
+							className='border p-2 rounded uppercase'
 							value={formData.loan.accountNumber}
 							onChange={(e) =>
-								handleLoanChange('accountNumber', e.target.value)
+								handleLoanChange('accountNumber', e.target.value.toUpperCase())
 							}
 						/>
 					</div>
