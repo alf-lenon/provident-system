@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 // TypeScript
 type Application = {
+	_id: string; // id automatically made from MongoDB
 	createdAt: string;
 
 	borrower: {
@@ -45,6 +46,32 @@ function Dashboard() {
 
 	const [searchTerm, setSearchTerm] = useState('');
 	const [statusFilter, setStatusFilter] = useState('All');
+
+	// Delete function
+	const handleDelete = async (id: string) => {
+		const confirmDelete = window.confirm(
+			'Are you sure you want to delete this application?',
+		);
+
+		if (!confirmDelete) return;
+
+		try {
+			const response = await fetch(`http://localhost:5000/applications/${id}`, {
+				method: 'DELETE',
+			});
+
+			const data = await response.json();
+
+			if (!response.ok) {
+				alert(data.message || 'Failed to delete application');
+				return;
+			}
+
+			setApplications((prev) => prev.filter((app) => app._id !== id));
+		} catch (error) {
+			console.error('Error deleting application:', error);
+		}
+	};
 
 	useEffect(() => {
 		const fetchApplications = async () => {
@@ -239,10 +266,6 @@ function Dashboard() {
 												<p className='font-semibold text-gray-800'>
 													{app.borrower.fullName}
 												</p>
-
-												<p className='text-sm text-gray-500'>
-													Code: {app.borrower.code}
-												</p>
 											</div>
 										</td>
 
@@ -277,12 +300,21 @@ function Dashboard() {
 										</td>
 
 										<td className='px-6 py-4 text-center'>
-											<button
-												onClick={() => setSelectedApplication(app)}
-												className='bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition'
-											>
-												View
-											</button>
+											<div className='flex justify-center gap-2'>
+												<button
+													onClick={() => setSelectedApplication(app)}
+													className='bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition'
+												>
+													View
+												</button>
+
+												<button
+													onClick={() => handleDelete(app._id)}
+													className='bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition'
+												>
+													Delete
+												</button>
+											</div>
 										</td>
 									</tr>
 								))}
@@ -366,6 +398,8 @@ function Dashboard() {
 								</h3>
 								<div className='space-y-2 text-sm text-gray-700'>
 									<p>Name: {selectedApplication.borrower.fullName}</p>
+									<p>Position: {selectedApplication.borrower.position}</p>
+									<p>School: {selectedApplication.borrower.school}</p>
 									<p>
 										Employee No: {selectedApplication.borrower.employeeNumber}
 									</p>

@@ -21,7 +21,7 @@ const PORT = 5000;
 app.use(cors());
 app.use(express.json()); // Parse incoming JSON data or Converts JSON string to object again.
 
-// Save into database
+// Save into database or Create new data
 app.post('/applications', async (req, res) => {
 	try {
 		const formData = req.body;
@@ -153,6 +153,31 @@ app.get('/applications', async (req, res) => {
 
 // Get all saved applications from MongoDB
 // find() = SELECT all data from database
+
+// Delete data from database
+app.delete('/applications/:id', async (req, res) => {
+	try {
+		const { id } = req.params;
+
+		const deletedApplication = await ApplicationModel.findByIdAndDelete(id);
+
+		if (!deletedApplication) {
+			return res.status(404).json({
+				message: 'Application not found',
+			});
+		}
+
+		res.json({
+			message: 'Application deleted successfully',
+			application: deletedApplication,
+		});
+	} catch (error: any) {
+		res.status(400).json({
+			message: 'Error deleting application',
+			error: error.message,
+		});
+	}
+});
 
 app.listen(PORT, () => {
 	console.log(`Server running on http://localhost:${PORT}/applications`);
