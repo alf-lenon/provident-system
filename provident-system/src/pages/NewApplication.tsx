@@ -302,39 +302,54 @@ function NewApplication() {
 						/>
 
 						<input
-							type='number'
+							type='text'
+							inputMode='numeric'
 							placeholder='Code/Sta'
 							className='border p-2 rounded '
 							value={formData.borrower.code}
-							onChange={(e) => handleBorrowerChange('code', e.target.value)}
+							onChange={(e) =>
+								handleBorrowerChange('code', e.target.value.replace(/\D/g, ''))
+							}
 						/>
 
 						<input
-							type='number'
+							type='text'
+							inputMode='numeric'
 							placeholder='LAF No.'
 							className='border p-2 rounded'
 							value={formData.borrower.lafNumber}
 							onChange={(e) =>
-								handleBorrowerChange('lafNumber', e.target.value)
+								handleBorrowerChange(
+									'lafNumber',
+									e.target.value.replace(/\D/g, ''),
+								)
 							}
 						/>
 
 						<input
-							type='number'
+							type='text'
+							inputMode='numeric'
 							placeholder='Salary Grade'
 							className='border p-2 rounded'
 							value={formData.borrower.salaryGrade}
 							onChange={(e) =>
-								handleBorrowerChange('salaryGrade', e.target.value)
+								handleBorrowerChange(
+									'salaryGrade',
+									e.target.value.replace(/\D/g, ''),
+								)
 							}
 						/>
 						<input
-							type='number'
+							type='text'
+							inputMode='numeric'
 							placeholder='Salary Step'
 							className='border p-2 rounded'
 							value={formData.borrower.salaryStep}
 							onChange={(e) =>
-								handleBorrowerChange('salaryStep', e.target.value)
+								handleBorrowerChange(
+									'salaryStep',
+									e.target.value.replace(/\D/g, ''),
+								)
 							}
 						/>
 						{/* Co-maker Section */}
@@ -369,21 +384,29 @@ function NewApplication() {
 							}
 						/>
 						<input
-							type='number'
+							type='text'
+							inputMode='numeric'
 							placeholder='Salary Grade'
 							className='border p-2 rounded'
 							value={formData.coMaker.salaryGrade}
 							onChange={(e) =>
-								handleCoMakerChange('salaryGrade', e.target.value)
+								handleCoMakerChange(
+									'salaryGrade',
+									e.target.value.replace(/\D/g, ''),
+								)
 							}
 						/>
 						<input
-							type='number'
+							type='text'
+							inputMode='numeric'
 							placeholder='Salary Step'
 							className='border p-2 rounded'
 							value={formData.coMaker.salaryStep}
 							onChange={(e) =>
-								handleCoMakerChange('salaryStep', e.target.value)
+								handleCoMakerChange(
+									'salaryStep',
+									e.target.value.replace(/\D/g, ''),
+								)
 							}
 						/>
 
@@ -437,11 +460,17 @@ function NewApplication() {
 						</div>
 
 						<input
-							type='number'
+							type='text'
+							inputMode='numeric'
 							placeholder='Requested Loan Amount'
 							className='border p-2 rounded'
 							value={formData.loan.loanAmount}
-							onChange={(e) => handleLoanChange('loanAmount', e.target.value)}
+							onChange={(e) =>
+								handleLoanChange(
+									'loanAmount',
+									e.target.value.replace(/\D/g, ''),
+								)
+							}
 						/>
 
 						{/* Term */}
@@ -661,47 +690,69 @@ function NewApplication() {
 
 					<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
 						<input
-							type='number'
+							type='text'
+							inputMode='numeric'
 							placeholder='Net Pay'
 							className='border p-2 rounded'
 							value={formData.evaluation.netPay}
-							onChange={(e) => handleEvaluationChange('netPay', e.target.value)}
+							onChange={(e) =>
+								handleEvaluationChange(
+									'netPay',
+									e.target.value.replace(/\D/g, ''),
+								)
+							}
 						/>
 
 						<input
-							type='number'
+							type='text'
+							inputMode='numeric'
 							placeholder='New Deduction'
 							className='border p-2 rounded'
 							value={formData.evaluation.newDeduction}
 							onChange={(e) =>
-								handleEvaluationChange('newDeduction', e.target.value)
+								handleEvaluationChange(
+									'newDeduction',
+									e.target.value.replace(/\D/g, ''),
+								)
 							}
 						/>
 						<input
-							type='number'
+							type='text'
+							inputMode='numeric'
 							placeholder='Existing Balance (Renewal only)'
 							className='border p-2 rounded'
 							value={formData.evaluation.existingBalance}
 							onChange={(e) =>
-								handleEvaluationChange('existingBalance', e.target.value)
+								handleEvaluationChange(
+									'existingBalance',
+									e.target.value.replace(/\D/g, ''),
+								)
 							}
 						/>
 						<input
-							type='number'
+							type='text'
+							inputMode='numeric'
 							placeholder='Existing Deduction (Renewal only)'
 							className='border p-2 rounded'
 							value={formData.evaluation.existingDeduction}
 							onChange={(e) =>
-								handleEvaluationChange('existingDeduction', e.target.value)
+								handleEvaluationChange(
+									'existingDeduction',
+									e.target.value.replace(/\D/g, ''),
+								)
 							}
 						/>
 						<input
-							type='number'
+							type='text'
+							inputMode='numeric'
 							placeholder='% Principal Paid (Renewal only)'
 							className='border p-2 rounded'
 							value={formData.evaluation.percentPrincipalPaid}
 							onChange={(e) =>
-								handleEvaluationChange('percentPrincipalPaid', e.target.value)
+								handleEvaluationChange(
+									'percentPrincipalPaid',
+									e.target.value.replace(/\D/g, ''),
+								)
 							}
 						/>
 					</div>
