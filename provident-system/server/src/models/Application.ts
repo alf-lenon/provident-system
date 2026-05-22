@@ -77,6 +77,22 @@ const applicationSchema = new mongoose.Schema(
 			remarks: [String], // array of reasons
 			rejectionReasons: [String],
 		},
+
+		processing: {
+			status: {
+				type: String,
+				default: 'Pending',
+			},
+
+			dateProcessed: Date,
+
+			released: {
+				type: Boolean,
+				default: false,
+			},
+
+			dateReleased: Date,
+		},
 	},
 	{
 		timestamps: true,

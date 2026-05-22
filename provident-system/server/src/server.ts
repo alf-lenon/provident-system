@@ -171,7 +171,7 @@ app.delete('/applications/:id', async (req, res) => {
 	}
 });
 
-// Update one application using its MongoDB _id
+// Update or edit one application using its MongoDB _id
 app.put('/applications/:id', async (req, res) => {
 	try {
 		// Express automatically gives the req.params from '/applications/:id'
@@ -203,6 +203,76 @@ app.put('/applications/:id', async (req, res) => {
 	} catch (error: any) {
 		res.status(400).json({
 			message: 'Error updating application',
+			error: error.message,
+		});
+	}
+});
+
+// Update application to 'processed'
+app.put('/applications/:id/process', async (req, res) => {
+	try {
+		const { id } = req.params;
+
+		const updatedApplication = await ApplicationModel.findByIdAndUpdate(
+			id,
+			{
+				'processing.status': 'Processed',
+				'processing.dateProcessed': new Date(),
+			},
+			{
+				new: true,
+				runValidators: true,
+			},
+		);
+
+		if (!updatedApplication) {
+			return res.status(404).json({
+				message: 'Application not found',
+			});
+		}
+
+		res.json({
+			message: 'Application marked as processed',
+			application: updatedApplication,
+		});
+	} catch (error: any) {
+		res.status(400).json({
+			message: 'Error marking application as processed',
+			error: error.message,
+		});
+	}
+});
+
+// Update application to 'Released'
+app.put('/applications/:id/release', async (req, res) => {
+	try {
+		const { id } = req.params;
+
+		const updatedApplication = await ApplicationModel.findByIdAndUpdate(
+			id,
+			{
+				'processing.released': true,
+				'processing.dateReleased': new Date(),
+			},
+			{
+				new: true,
+				runValidators: true,
+			},
+		);
+
+		if (!updatedApplication) {
+			return res.status(404).json({
+				message: 'Application not found',
+			});
+		}
+
+		res.json({
+			message: 'Application marked as released',
+			application: updatedApplication,
+		});
+	} catch (error: any) {
+		res.status(400).json({
+			message: 'Error marking application as released',
 			error: error.message,
 		});
 	}

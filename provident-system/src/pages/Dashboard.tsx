@@ -61,6 +61,13 @@ type Application = {
 	flags: {
 		hasUndeLoan: boolean;
 	};
+
+	processing: {
+		status: string;
+		dateProcessed?: string;
+		released: boolean;
+		dateReleased?: string;
+	};
 };
 function Dashboard() {
 	const [applications, setApplications] = useState<Application[]>([]);
@@ -133,6 +140,48 @@ function Dashboard() {
 		} catch (error) {
 			console.error('Error updating application:', error);
 		}
+	};
+
+	// Mark application as processed
+	const handleMarkAsProcessed = async (id: string) => {
+		const response = await fetch(
+			`http://localhost:5000/applications/${id}/process`,
+			{
+				method: 'PUT',
+			},
+		);
+
+		const data = await response.json();
+
+		if (!response.ok) {
+			alert(data.message || 'Failed to mark as processed');
+			return;
+		}
+
+		setApplications((prev) =>
+			prev.map((app) => (app._id === id ? data.application : app)),
+		);
+	};
+
+	// Mark application as released
+	const handleRelease = async (id: string) => {
+		const response = await fetch(
+			`http://localhost:5000/applications/${id}/release`,
+			{
+				method: 'PUT',
+			},
+		);
+
+		const data = await response.json();
+
+		if (!response.ok) {
+			alert(data.message || 'Failed to mark as released');
+			return;
+		}
+
+		setApplications((prev) =>
+			prev.map((app) => (app._id === id ? data.application : app)),
+		);
 	};
 
 	useEffect(() => {
@@ -294,6 +343,14 @@ function Dashboard() {
 										Status
 									</th>
 
+									<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
+										Processing
+									</th>
+
+									<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
+										Release
+									</th>
+
 									<th className='px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase'>
 										Actions
 									</th>
@@ -304,7 +361,7 @@ function Dashboard() {
 								{filteredApplications.length === 0 && (
 									<tr>
 										<td
-											colSpan={6}
+											colSpan={8}
 											className='px-6 py-8 text-center text-gray-500'
 										>
 											No applications found.
@@ -352,6 +409,46 @@ function Dashboard() {
 											</span>
 										</td>
 
+										<td className='px-6 py-4'>
+											<span
+												className={
+													app.processing?.status === 'Processed'
+														? 'bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium'
+														: 'bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-medium'
+												}
+											>
+												{app.processing?.status || 'Pending'}
+											</span>
+
+											{app.processing?.dateProcessed && (
+												<p className='text-xs text-gray-500 mt-1'>
+													{new Date(
+														app.processing.dateProcessed,
+													).toLocaleDateString('en-PH')}
+												</p>
+											)}
+										</td>
+
+										<td className='px-6 py-4'>
+											<span
+												className={
+													app.processing?.released
+														? 'bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-medium'
+														: 'bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-medium'
+												}
+											>
+												{app.processing?.released ? 'Released' : 'Not Released'}
+											</span>
+
+											{app.processing?.dateReleased && (
+												<p className='text-xs text-gray-500 mt-1'>
+													{new Date(
+														app.processing.dateReleased,
+													).toLocaleDateString('en-PH')}
+												</p>
+											)}
+										</td>
+
 										<td className='px-6 py-4 text-center'>
 											<div className='flex justify-center gap-2'>
 												<button
@@ -373,6 +470,20 @@ function Dashboard() {
 													className='bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition'
 												>
 													Delete
+												</button>
+
+												<button
+													onClick={() => handleMarkAsProcessed(app._id)}
+													className='bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition'
+												>
+													Process
+												</button>
+
+												<button
+													onClick={() => handleRelease(app._id)}
+													className='bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition'
+												>
+													Release
 												</button>
 											</div>
 										</td>
