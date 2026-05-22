@@ -184,6 +184,42 @@ function Dashboard() {
 		);
 	};
 
+	const handleUndoProcessed = async (id: string) => {
+		const response = await fetch(
+			`http://localhost:5000/applications/${id}/unprocess`,
+			{ method: 'PUT' },
+		);
+
+		const data = await response.json();
+
+		if (!response.ok) {
+			alert(data.message || 'Failed to undo process action');
+			return;
+		}
+
+		setApplications((prev) =>
+			prev.map((app) => (app._id === id ? data.application : app)),
+		);
+	};
+
+	const handleUndoRelease = async (id: string) => {
+		const response = await fetch(
+			`http://localhost:5000/applications/${id}/unrelease`,
+			{ method: 'PUT' },
+		);
+
+		const data = await response.json();
+
+		if (!response.ok) {
+			alert(data.message || 'Failed to undo release action');
+			return;
+		}
+
+		setApplications((prev) =>
+			prev.map((app) => (app._id === id ? data.application : app)),
+		);
+	};
+
 	useEffect(() => {
 		const fetchApplications = async () => {
 			try {
@@ -472,19 +508,42 @@ function Dashboard() {
 													Delete
 												</button>
 
-												<button
-													onClick={() => handleMarkAsProcessed(app._id)}
-													className='bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition'
-												>
-													Process
-												</button>
+												{app.processing?.status === 'Processed' ? (
+													<button
+														onClick={() => handleUndoProcessed(app._id)}
+														className='bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition'
+													>
+														Undo Process
+													</button>
+												) : (
+													<button
+														onClick={() => handleMarkAsProcessed(app._id)}
+														className='bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition'
+													>
+														Process
+													</button>
+												)}
 
-												<button
-													onClick={() => handleRelease(app._id)}
-													className='bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition'
-												>
-													Release
-												</button>
+												{app.processing?.released ? (
+													<button
+														onClick={() => handleUndoRelease(app._id)}
+														className='bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition'
+													>
+														Undo Release
+													</button>
+												) : (
+													<button
+														onClick={() => handleRelease(app._id)}
+														disabled={app.processing?.status !== 'Processed'}
+														className={
+															app.processing?.status !== 'Processed'
+																? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed'
+																: 'bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition'
+														}
+													>
+														Release
+													</button>
+												)}
 											</div>
 										</td>
 									</tr>

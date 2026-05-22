@@ -277,6 +277,73 @@ app.put('/applications/:id/release', async (req, res) => {
 		});
 	}
 });
+
+//  Update application to 'Unprocess'
+app.put('/applications/:id/unprocess', async (req, res) => {
+	try {
+		const { id } = req.params;
+
+		const updatedApplication = await ApplicationModel.findByIdAndUpdate(
+			id,
+			{
+				'processing.status': 'Pending',
+				'processing.released': false,
+				$unset: {
+					'processing.dateProcessed': '',
+					'processing.dateReleased': '',
+				},
+			},
+			{ new: true },
+		);
+
+		if (!updatedApplication) {
+			return res.status(404).json({ message: 'Application not found' });
+		}
+
+		res.json({
+			message: 'Application moved back to pending',
+			application: updatedApplication,
+		});
+	} catch (error: any) {
+		res.status(400).json({
+			message: 'Error undoing process action',
+			error: error.message,
+		});
+	}
+});
+
+// Update application to 'Unrelease'
+app.put('/applications/:id/unrelease', async (req, res) => {
+	try {
+		const { id } = req.params;
+
+		const updatedApplication = await ApplicationModel.findByIdAndUpdate(
+			id,
+			{
+				'processing.released': false,
+				$unset: {
+					'processing.dateReleased': '',
+				},
+			},
+			{ new: true },
+		);
+
+		if (!updatedApplication) {
+			return res.status(404).json({ message: 'Application not found' });
+		}
+
+		res.json({
+			message: 'Application release undone',
+			application: updatedApplication,
+		});
+	} catch (error: any) {
+		res.status(400).json({
+			message: 'Error undoing release action',
+			error: error.message,
+		});
+	}
+});
+
 app.listen(PORT, () => {
 	console.log(`Server running on http://localhost:${PORT}/applications`);
 });
