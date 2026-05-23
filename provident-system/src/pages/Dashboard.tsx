@@ -81,6 +81,9 @@ function Dashboard() {
 	const [editingApplication, setEditingApplication] =
 		useState<Application | null>(null);
 
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState('');
+
 	// Delete request to backend
 	const handleDelete = async (id: string) => {
 		const confirmDelete = window.confirm(
@@ -144,94 +147,97 @@ function Dashboard() {
 
 	// Mark application as processed
 	const handleMarkAsProcessed = async (id: string) => {
-		const response = await fetch(
-			`http://localhost:5000/applications/${id}/process`,
-			{
-				method: 'PUT',
-			},
-		);
+		try {
+			const response = await fetch(
+				`http://localhost:5000/applications/${id}/process`,
+				{
+					method: 'PUT',
+				},
+			);
 
-		const data = await response.json();
+			const data = await response.json();
 
-		if (!response.ok) {
-			alert(data.message || 'Failed to mark as processed');
-			return;
+			if (!response.ok) {
+				alert(data.message || 'Failed to mark as processed');
+				return;
+			}
+
+			setApplications((prev) =>
+				prev.map((app) => (app._id === id ? data.application : app)),
+			);
+		} catch (error) {
+			console.error('Error processing application', error);
 		}
-
-		setApplications((prev) =>
-			prev.map((app) => (app._id === id ? data.application : app)),
-		);
 	};
 
 	// Mark application as released
 	const handleRelease = async (id: string) => {
-		const response = await fetch(
-			`http://localhost:5000/applications/${id}/release`,
-			{
-				method: 'PUT',
-			},
-		);
+		try {
+			const response = await fetch(
+				`http://localhost:5000/applications/${id}/release`,
+				{
+					method: 'PUT',
+				},
+			);
 
-		const data = await response.json();
+			const data = await response.json();
 
-		if (!response.ok) {
-			alert(data.message || 'Failed to mark as released');
-			return;
+			if (!response.ok) {
+				alert(data.message || 'Failed to mark as released');
+				return;
+			}
+
+			setApplications((prev) =>
+				prev.map((app) => (app._id === id ? data.application : app)),
+			);
+		} catch (error) {
+			console.error('Error releasing application', error);
 		}
-
-		setApplications((prev) =>
-			prev.map((app) => (app._id === id ? data.application : app)),
-		);
 	};
 
 	const handleUndoProcessed = async (id: string) => {
-		const response = await fetch(
-			`http://localhost:5000/applications/${id}/unprocess`,
-			{ method: 'PUT' },
-		);
+		try {
+			const response = await fetch(
+				`http://localhost:5000/applications/${id}/unprocess`,
+				{ method: 'PUT' },
+			);
 
-		const data = await response.json();
+			const data = await response.json();
 
-		if (!response.ok) {
-			alert(data.message || 'Failed to undo process action');
-			return;
+			if (!response.ok) {
+				alert(data.message || 'Failed to undo process action');
+				return;
+			}
+
+			setApplications((prev) =>
+				prev.map((app) => (app._id === id ? data.application : app)),
+			);
+		} catch (error) {
+			console.error('Error undo processing', error);
 		}
-
-		setApplications((prev) =>
-			prev.map((app) => (app._id === id ? data.application : app)),
-		);
 	};
 
 	const handleUndoRelease = async (id: string) => {
-		const response = await fetch(
-			`http://localhost:5000/applications/${id}/unrelease`,
-			{ method: 'PUT' },
-		);
+		try {
+			const response = await fetch(
+				`http://localhost:5000/applications/${id}/unrelease`,
+				{ method: 'PUT' },
+			);
 
-		const data = await response.json();
+			const data = await response.json();
 
-		if (!response.ok) {
-			alert(data.message || 'Failed to undo release action');
-			return;
-		}
-
-		setApplications((prev) =>
-			prev.map((app) => (app._id === id ? data.application : app)),
-		);
-	};
-
-	useEffect(() => {
-		const fetchApplications = async () => {
-			try {
-				const response = await fetch('http://localhost:5000/applications'); // Request data from back end
-				const data = await response.json(); // Data or response from back end
-				setApplications(data); // Updates the state or Replaces current applications with new data
-			} catch (error) {
-				console.error('error', error);
+			if (!response.ok) {
+				alert(data.message || 'Failed to undo release action');
+				return;
 			}
-		};
-		fetchApplications();
-	}, []);
+
+			setApplications((prev) =>
+				prev.map((app) => (app._id === id ? data.application : app)),
+			);
+		} catch (error) {
+			console.error('Error undo release', error);
+		}
+	};
 
 	// Filter and Search System
 	const filteredApplications = applications.filter((app) => {
@@ -244,6 +250,42 @@ function Dashboard() {
 
 		return matchesSearch && matchesStatus;
 	});
+
+	const canProcess = (app: Application) => {
+		return app.evaluation.status === 'Ready for Processing';
+	};
+
+	const canRelease = (app: Application) => {
+		return app.processing?.status === 'Processed';
+	};
+
+	// Fetch to backend
+	useEffect(() => {
+		const fetchApplications = async () => {
+			try {
+				setIsLoading(true);
+				setError('');
+
+				const response = await fetch('http://localhost:5000/applications');
+				const data = await response.json();
+
+				if (!response.ok) {
+					setError(data.message || 'Failed to fetch applications');
+					return;
+				}
+
+				setApplications(data);
+			} catch (error) {
+				console.error('error', error);
+				setError('Could not connect to the server.');
+			} finally {
+				setIsLoading(false);
+			}
+		};
+
+		fetchApplications();
+	}, []);
+
 	return (
 		<main className='min-h-screen bg-gray-100 flex'>
 			{/* Sidebar */}
@@ -356,6 +398,13 @@ function Dashboard() {
 					</div>
 
 					<div className='overflow-x-auto'>
+						{isLoading && (
+							<p className='text-sm text-gray-500 mb-4'>
+								Loading applications...
+							</p>
+						)}
+
+						{error && <p className='text-sm text-red-600 mb-4'>{error}</p>}
 						<table className='min-w-full divide-y divide-gray-200'>
 							<thead className='bg-gray-50'>
 								<tr>
@@ -405,8 +454,8 @@ function Dashboard() {
 									</tr>
 								)}
 
-								{filteredApplications.map((app, index) => (
-									<tr key={index} className='hover:bg-gray-50 transition'>
+								{filteredApplications.map((app) => (
+									<tr key={app._id} className='hover:bg-gray-50 transition'>
 										<td className='px-6 py-4'>
 											<div>
 												<p className='font-semibold text-gray-800'>
@@ -518,7 +567,12 @@ function Dashboard() {
 												) : (
 													<button
 														onClick={() => handleMarkAsProcessed(app._id)}
-														className='bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition'
+														disabled={!canProcess(app)}
+														className={
+															!canProcess(app)
+																? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed'
+																: 'bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition'
+														}
 													>
 														Process
 													</button>
@@ -534,9 +588,9 @@ function Dashboard() {
 												) : (
 													<button
 														onClick={() => handleRelease(app._id)}
-														disabled={app.processing?.status !== 'Processed'}
+														disabled={!canRelease(app)}
 														className={
-															app.processing?.status !== 'Processed'
+															!canRelease(app)
 																? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed'
 																: 'bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition'
 														}
