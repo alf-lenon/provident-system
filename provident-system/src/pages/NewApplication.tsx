@@ -134,6 +134,7 @@ function NewApplication() {
 	const [result, setResult] = useState<BackendResult | null>(null);
 	const [successMessage, setSuccessMessage] = useState('');
 	const [errorMessage, setErrorMessage] = useState('');
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const handleBorrowerChange = (
 		field: keyof FormData['borrower'],
@@ -208,10 +209,17 @@ function NewApplication() {
 	};
 
 	// Send data to back end
+
 	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault(); // Prevents page from reloading
+		e.preventDefault();
+		setResult(null);
 
 		try {
+			// Prevent double submit
+			setIsSubmitting(true);
+			setErrorMessage('');
+			setSuccessMessage('');
+
 			const response = await fetch('http://localhost:5000/applications', {
 				method: 'POST',
 				headers: {
@@ -224,15 +232,16 @@ function NewApplication() {
 
 			if (!response.ok) {
 				setErrorMessage(data.message || 'Something went wrong');
-				setSuccessMessage('');
 				return;
 			}
 
 			setResult(data);
 			setSuccessMessage(data.message || 'Application submitted successfully');
-			setErrorMessage('');
 		} catch (error) {
 			console.error('Error', error);
+			setErrorMessage('Could not connect to the server.');
+		} finally {
+			setIsSubmitting(false);
 		}
 	};
 
@@ -276,6 +285,7 @@ function NewApplication() {
 								onChange={(e) =>
 									handleBorrowerChange('fullName', e.target.value.toUpperCase())
 								}
+								required
 							/>
 						</div>
 
@@ -289,6 +299,7 @@ function NewApplication() {
 								onChange={(e) =>
 									handleBorrowerChange('employeeNumber', e.target.value)
 								}
+								required
 							/>
 						</div>
 
@@ -302,6 +313,7 @@ function NewApplication() {
 								onChange={(e) =>
 									handleBorrowerChange('school', e.target.value.toUpperCase())
 								}
+								required
 							/>
 						</div>
 
@@ -314,6 +326,7 @@ function NewApplication() {
 								onChange={(e) =>
 									handleBorrowerChange('position', e.target.value.toUpperCase())
 								}
+								required
 							/>
 						</div>
 
@@ -331,6 +344,7 @@ function NewApplication() {
 										e.target.value.replace(/\D/g, ''),
 									)
 								}
+								required
 							/>
 						</div>
 
@@ -348,6 +362,7 @@ function NewApplication() {
 										e.target.value.replace(/\D/g, ''),
 									)
 								}
+								required
 							/>
 						</div>
 
@@ -365,6 +380,7 @@ function NewApplication() {
 										e.target.value.replace(/\D/g, ''),
 									)
 								}
+								required
 							/>
 						</div>
 
@@ -381,6 +397,7 @@ function NewApplication() {
 										e.target.value.replace(/\D/g, ''),
 									)
 								}
+								required
 							/>
 						</div>
 
@@ -399,6 +416,7 @@ function NewApplication() {
 								onChange={(e) =>
 									handleCoMakerChange('name', e.target.value.toUpperCase())
 								}
+								required
 							/>
 						</div>
 
@@ -411,6 +429,7 @@ function NewApplication() {
 								onChange={(e) =>
 									handleCoMakerChange('employeeNumber', e.target.value)
 								}
+								required
 							/>
 						</div>
 
@@ -424,6 +443,7 @@ function NewApplication() {
 								onChange={(e) =>
 									handleCoMakerChange('contactNumber', e.target.value)
 								}
+								required
 							/>
 						</div>
 
@@ -440,6 +460,7 @@ function NewApplication() {
 										e.target.value.replace(/\D/g, ''),
 									)
 								}
+								required
 							/>
 						</div>
 
@@ -457,6 +478,7 @@ function NewApplication() {
 										e.target.value.replace(/\D/g, ''),
 									)
 								}
+								required
 							/>
 						</div>
 
@@ -479,6 +501,7 @@ function NewApplication() {
 						{/* Loan Type */}
 						<div>
 							<select
+								required
 								className={inputClass}
 								value={formData.loan.loanType}
 								onChange={(e) => handleLoanChange('loanType', e.target.value)}
@@ -493,6 +516,7 @@ function NewApplication() {
 						{/* Purpose */}
 						<div>
 							<select
+								required
 								className={inputClass}
 								value={formData.loan.purpose}
 								onChange={(e) => handleLoanChange('purpose', e.target.value)}
@@ -524,12 +548,14 @@ function NewApplication() {
 										e.target.value.replace(/[^0-9.]/g, ''),
 									)
 								}
+								required
 							/>
 						</div>
 
 						{/* Term */}
 						<div>
 							<select
+								required
 								className={inputClass}
 								value={formData.loan.term}
 								onChange={(e) => handleLoanChange('term', e.target.value)}
@@ -552,6 +578,7 @@ function NewApplication() {
 								onChange={(e) =>
 									handleLoanChange('accountNumber', e.target.value)
 								}
+								required
 							/>
 						</div>
 					</div>
@@ -724,19 +751,20 @@ function NewApplication() {
 							/>
 							Has UNDE Loan
 						</label>
-
-						<p
-							className={
-								result?.application?.evaluation?.isUndeValid
-									? 'text-green-600'
-									: 'text-red-600'
-							}
-						>
-							UNDE Status:{' '}
-							{result?.application?.evaluation?.isUndeValid
-								? 'No UNDE'
-								: 'Has UNDE Loan'}
-						</p>
+						{result && (
+							<p
+								className={
+									result?.application?.evaluation?.isUndeValid
+										? 'text-green-600'
+										: 'text-red-600'
+								}
+							>
+								UNDE Status:{' '}
+								{result?.application?.evaluation?.isUndeValid
+									? 'No UNDE'
+									: 'Has UNDE Loan'}
+							</p>
+						)}
 					</div>
 				</section>
 
@@ -760,6 +788,7 @@ function NewApplication() {
 										e.target.value.replace(/[^0-9.]/g, ''),
 									)
 								}
+								required
 							/>
 						</div>
 
@@ -776,6 +805,7 @@ function NewApplication() {
 										e.target.value.replace(/[^0-9.]/g, ''),
 									)
 								}
+								required
 							/>
 						</div>
 
@@ -862,32 +892,36 @@ function NewApplication() {
 						</div>
 
 						<div className='bg-white border border-gray-200 rounded-xl p-5 shadow-sm'>
-							<p
-								className={
-									result?.application?.evaluation?.isNPADValid
-										? 'text-sm text-green-600'
-										: 'text-sm text-red-600'
-								}
-							>
-								NPAD Status:{' '}
-								{result?.application?.evaluation?.isNPADValid
-									? 'Valid'
-									: 'Below ₱5,000'}
-							</p>
+							{result && (
+								<p
+									className={
+										result?.application?.evaluation?.isNPADValid
+											? 'text-sm text-green-600'
+											: 'text-sm text-red-600'
+									}
+								>
+									NPAD Status:{' '}
+									{result?.application?.evaluation?.isNPADValid
+										? 'Valid'
+										: 'Below ₱5,000'}
+								</p>
+							)}
 						</div>
 
-						<p
-							className={
-								result?.application?.evaluation?.status === 'Rejected'
-									? 'text-red-600 font-semibold'
-									: result?.application?.evaluation?.status ===
-										  'Needs Correction'
-										? 'text-yellow-600 font-semibold'
-										: 'text-green-600 font-semibold'
-							}
-						>
-							Status: {result?.application?.evaluation?.status}
-						</p>
+						{result && (
+							<p
+								className={
+									result.application.evaluation.status === 'Rejected'
+										? 'text-red-600 font-semibold'
+										: result.application.evaluation.status ===
+											  'Needs Correction'
+											? 'text-yellow-600 font-semibold'
+											: 'text-green-600 font-semibold'
+								}
+							>
+								Status: {result.application.evaluation.status}
+							</p>
+						)}
 						{result?.application?.evaluation?.status === 'Rejected' && (
 							<ul className='text-sm text-gray-600 mt-2'>
 								{!result?.application?.evaluation?.isCoMakerValid && (
@@ -938,9 +972,14 @@ function NewApplication() {
 				<div className='sticky bottom-0 bg-white border-t border-gray-200 p-4 flex justify-end gap-3 rounded-b-2xl'>
 					<button
 						type='submit'
-						className='bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition'
+						disabled={isSubmitting}
+						className={
+							isSubmitting
+								? 'bg-gray-300 text-gray-500 px-6 py-2 rounded-lg cursor-not-allowed'
+								: 'bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition'
+						}
 					>
-						Submit Application
+						{isSubmitting ? 'Submitting...' : 'Submit Application'}
 					</button>
 				</div>
 			</form>
