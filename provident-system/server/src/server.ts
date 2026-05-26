@@ -1,3 +1,6 @@
+import multer from 'multer';
+import ExcelJS from 'exceljs';
+
 import {
 	computeNPAD,
 	computeFinalLoanGranted,
@@ -20,6 +23,8 @@ const PORT = 5000;
 // Middlewares
 app.use(cors());
 app.use(express.json()); // Parse incoming JSON data or Converts JSON string to object again.
+
+const upload = multer({ dest: 'uploads/' });
 
 // Helper function
 const processApplicationData = (formData: any) => {
@@ -135,6 +140,122 @@ app.post('/applications', async (req, res) => {
 		});
 	}
 });
+
+app.post(
+	'/applications/import-monitoring/preview',
+	upload.single('file'),
+	async (req, res) => {
+		try {
+			if (!req.file) {
+				return res.status(400).json({ message: 'No file uploaded' });
+			}
+
+			const workbook = new ExcelJS.Workbook();
+			await workbook.xlsx.readFile(req.file.path);
+
+			const worksheet = workbook.worksheets[0];
+
+			const rows: any[] = [];
+
+			worksheet.eachRow((row, rowNumber) => {
+				if (rowNumber <= 1) return;
+
+				const cleanValue = (value: string) => {
+					if (!value || value === '#ERROR!') return '';
+					return value.trim();
+				};
+
+				const borrowerName = cleanValue(row.getCell(13).text);
+				const loanType = cleanValue(row.getCell(2).text);
+
+				if (!borrowerName) return;
+
+				rows.push({
+					rowNumber,
+					borrower: {
+						fullName: borrowerName,
+						position: cleanValue(row.getCell(4).text),
+						employeeNumber: cleanValue(row.getCell(6).text),
+						code: cleanValue(row.getCell(5).text),
+						lafNumber: cleanValue(row.getCell(12).text),
+						school: cleanValue(row.getCell(17).text),
+					},
+					coMaker: {
+						name: cleanValue(row.getCell(14).text),
+						employeeNumber: cleanValue(row.getCell(15).text),
+						contactNumber: cleanValue(row.getCell(16).text),
+					},
+					loan: {
+						loanType,
+						term: cleanValue(row.getCell(3).text),
+						loanAmount: cleanValue(row.getCell(18).text),
+					},
+					evaluation: {
+						netPay: cleanValue(row.getCell(11).text),
+						newDeduction: cleanValue(row.getCell(10).text),
+						existingDeduction: cleanValue(row.getCell(9).text),
+						netPayAfterDeduction: cleanValue(row.getCell(8).text),
+						finalLoanGranted: cleanValue(row.getCell(7).text),
+					},
+					monitoring: {
+						dateReceived: cleanValue(row.getCell(1).text),
+						compliance: cleanValue(row.getCell(19).text),
+						dateComplied: cleanValue(row.getCell(20).text),
+						remarks: cleanValue(row.getCell(26).text),
+					},
+				});
+			});
+
+			res.json({
+				message: 'Monitoring file preview generated',
+				totalRows: rows.length,
+				rows,
+			});
+		} catch (error: any) {
+			res.status(500).json({
+				message: 'Error reading monitoring file',
+				error: error.message,
+			});
+		}
+	},
+);
+
+app.post(
+	'/applications/import-monitoring/debug',
+	upload.single('file'),
+	async (req, res) => {
+		if (!req.file) {
+			return res.status(400).json({ message: 'No file uploaded' });
+		}
+
+		const workbook = new ExcelJS.Workbook();
+		await workbook.xlsx.readFile(req.file.path);
+
+		const worksheet = workbook.worksheets[0];
+
+		const preview: any[] = [];
+
+		worksheet.eachRow((row, rowNumber) => {
+			if (rowNumber > 15) return;
+
+			const cells: any[] = [];
+
+			row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+				cells.push({
+					colNumber,
+					value: cell.text,
+				});
+			});
+
+			preview.push({
+				rowNumber,
+				cells,
+			});
+		});
+
+		res.json(preview);
+	},
+);
 
 // Get saved data
 app.get('/applications', async (req, res) => {
