@@ -141,6 +141,7 @@ app.post('/applications', async (req, res) => {
 	}
 });
 
+// Excel Monitoring import preview
 app.post(
 	'/applications/import-monitoring/preview',
 	upload.single('file'),
@@ -214,6 +215,128 @@ app.post(
 		} catch (error: any) {
 			res.status(500).json({
 				message: 'Error reading monitoring file',
+				error: error.message,
+			});
+		}
+	},
+);
+
+// Save imported excel to MongoDB
+app.post(
+	'/applications/import-monitoring/save',
+	upload.single('file'),
+	async (req, res) => {
+		try {
+			if (!req.file) {
+				return res.status(400).json({ message: 'No file uploaded' });
+			}
+
+			// Helper Function
+			const cleanValue = (value: string) => {
+				if (!value || value === '#ERROR!') return '';
+				return value.trim();
+			};
+
+			const cleanNumber = (value: string) => {
+				const cleaned = cleanValue(value).replace(/,/g, '');
+				const numberValue = Number(cleaned);
+
+				return Number.isNaN(numberValue) ? 0 : numberValue;
+			};
+
+			const workbook = new ExcelJS.Workbook();
+			await workbook.xlsx.readFile(req.file.path);
+
+			const worksheet = workbook.worksheets[0];
+
+			const importedApplications: any[] = [];
+
+			worksheet.eachRow((row, rowNumber) => {
+				if (rowNumber <= 1) return;
+
+				const borrowerName = cleanValue(row.getCell(13).text);
+				const loanType = cleanValue(row.getCell(2).text);
+
+				if (!borrowerName) return;
+
+				importedApplications.push({
+					borrower: {
+						fullName: borrowerName,
+						employeeNumber: cleanValue(row.getCell(6).text) || 'N/A',
+						school: cleanValue(row.getCell(17).text) || 'N/A',
+						position: cleanValue(row.getCell(4).text) || 'N/A',
+						code: cleanValue(row.getCell(5).text) || 'N/A',
+						lafNumber: cleanValue(row.getCell(12).text) || 'N/A',
+						salaryGrade: 'N/A',
+						salaryStep: 'N/A',
+					},
+
+					coMaker: {
+						name: cleanValue(row.getCell(14).text) || 'N/A',
+						employeeNumber: cleanValue(row.getCell(15).text) || 'N/A',
+						contactNumber: cleanValue(row.getCell(16).text) || 'N/A',
+						salaryGrade: 'N/A',
+						salaryStep: 'N/A',
+					},
+
+					loan: {
+						loanAmount: String(cleanNumber(row.getCell(18).text)),
+						loanType: loanType || 'N/A',
+						accountNumber: 'N/A',
+						term: cleanValue(row.getCell(3).text) || 'N/A',
+						purpose: 'Imported from monitoring',
+					},
+
+					flags: {
+						hasUndeLoan: false,
+					},
+
+					checklist: {
+						soa: false,
+						payslipReadable: false,
+						payslipOriginal: false,
+						authorizationFormComplete: false,
+						supportingDocuments: false,
+						photocopyOfId: false,
+						photocopyOfAtm: false,
+						accountNumberVerified: false,
+						loanApplicationForm: false,
+						authorizationSalaryDeduction: false,
+						latestPayslip: false,
+						approvedAppointment: false,
+						coMakerDocuments: false,
+					},
+
+					evaluation: {
+						netPay: cleanNumber(row.getCell(11).text),
+						newDeduction: cleanNumber(row.getCell(10).text),
+						existingDeduction: cleanNumber(row.getCell(9).text),
+						existingBalance: 0,
+						percentPrincipalPaid: 0,
+						netPayAfterDeduction: cleanNumber(row.getCell(8).text),
+						finalLoanGranted: cleanNumber(row.getCell(7).text),
+						status: 'Imported',
+						remarks: [cleanValue(row.getCell(26).text)].filter(Boolean),
+						rejectionReasons: [],
+					},
+
+					processing: {
+						status: 'Imported',
+						released: false,
+					},
+				});
+			});
+
+			const savedApplications =
+				await ApplicationModel.insertMany(importedApplications);
+
+			res.json({
+				message: 'Monitoring records imported successfully',
+				totalImported: savedApplications.length,
+			});
+		} catch (error: any) {
+			res.status(500).json({
+				message: 'Error importing monitoring records',
 				error: error.message,
 			});
 		}
