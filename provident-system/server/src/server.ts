@@ -1,3 +1,4 @@
+import path from 'path';
 import multer from 'multer';
 import ExcelJS from 'exceljs';
 
@@ -117,6 +118,25 @@ const processApplicationData = (formData: any) => {
 			rejectionReasons,
 		},
 	};
+};
+
+// Match term format to excel files
+const termToYears = (term: string) => {
+	const months = parseInt(term);
+
+	if (!months || Number.isNaN(months)) return term;
+
+	const years = months / 12;
+
+	return years === 1 ? '1 Year' : `${years} Years`;
+};
+
+const termToMonths = (term: string) => {
+	const months = parseInt(term);
+
+	if (!months || Number.isNaN(months)) return term;
+
+	return `${months} months`;
 };
 
 // Save into database or Create new data
@@ -327,12 +347,34 @@ app.post(
 				});
 			});
 
+			const newApplications: any[] = [];
+			const skippedDuplicates: any[] = [];
+
+			for (const application of importedApplications) {
+				const existingApplication = await ApplicationModel.findOne({
+					'borrower.fullName': application.borrower.fullName,
+					'borrower.employeeNumber': application.borrower.employeeNumber,
+					'borrower.lafNumber': application.borrower.lafNumber,
+				});
+
+				if (existingApplication) {
+					skippedDuplicates.push(application);
+					continue;
+				}
+
+				newApplications.push(application);
+			}
+
 			const savedApplications =
-				await ApplicationModel.insertMany(importedApplications);
+				newApplications.length > 0
+					? await ApplicationModel.insertMany(newApplications)
+					: [];
 
 			res.json({
-				message: 'Monitoring records imported successfully',
+				message: 'Monitoring records import completed',
+				totalRead: importedApplications.length,
 				totalImported: savedApplications.length,
+				totalSkippedDuplicates: skippedDuplicates.length,
 			});
 		} catch (error: any) {
 			res.status(500).json({
@@ -342,6 +384,95 @@ app.post(
 		}
 	},
 );
+
+app.post('/applications/export/monitoring/bulk', async (req, res) => {
+	try {
+		const { ids } = req.body;
+
+		if (!ids || !Array.isArray(ids) || ids.length === 0) {
+			return res.status(400).json({
+				message: 'No application IDs provided',
+			});
+		}
+
+		const applications = await ApplicationModel.find({
+			_id: { $in: ids },
+		});
+
+		if (applications.length === 0) {
+			return res.status(404).json({
+				message: 'No applications found',
+			});
+		}
+
+		const workbook = new ExcelJS.Workbook();
+
+		const templatePath = path.join(
+			process.cwd(),
+			'templates',
+			'provident-monitoring-template.xlsx',
+		);
+
+		await workbook.xlsx.readFile(templatePath);
+
+		const worksheet = workbook.worksheets[0];
+
+		applications.forEach((application) => {
+			const borrower = application.borrower!;
+			const coMaker = application.coMaker!;
+			const loan = application.loan!;
+			const evaluation = application.evaluation!;
+
+			worksheet.addRow([
+				new Date(),
+				loan.loanType,
+				termToYears(loan.term),
+				borrower.position,
+				borrower.code,
+				borrower.employeeNumber,
+				evaluation.finalLoanGranted,
+				evaluation.netPayAfterDeduction,
+				evaluation.existingDeduction,
+				evaluation.newDeduction,
+				evaluation.netPay,
+				borrower.lafNumber,
+				borrower.fullName,
+				coMaker.name,
+				coMaker.employeeNumber,
+				coMaker.contactNumber,
+				borrower.school,
+				loan.loanAmount,
+				evaluation.status,
+				'',
+				'',
+				'',
+				'',
+				'',
+				'',
+				evaluation.remarks?.join(', ') || '',
+			]);
+		});
+
+		const buffer = await workbook.xlsx.writeBuffer();
+
+		res.setHeader(
+			'Content-Type',
+			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		);
+
+		res.setHeader(
+			'Content-Disposition',
+			'attachment; filename="provident-monitoring-bulk-export.xlsx"',
+		);
+
+		res.send(buffer);
+	} catch (error: any) {
+		res.status(500).json({
+			message: 'Error exporting selected monitoring records',
+			error: error.message,
+		});
+	}
+});
 
 app.post(
 	'/applications/import-monitoring/debug',
@@ -389,6 +520,89 @@ app.get('/applications', async (req, res) => {
 
 // Get all saved applications from MongoDB
 // find() = SELECT all data from database
+
+app.get('/applications/:id/export/monitoring', async (req, res) => {
+	try {
+		const { id } = req.params;
+
+		const application = await ApplicationModel.findById(id);
+
+		if (!application) {
+			return res.status(404).json({
+				message: 'Application not found',
+			});
+		}
+
+		const borrower = application.borrower!;
+		const coMaker = application.coMaker!;
+		const loan = application.loan!;
+		const evaluation = application.evaluation!;
+
+		const workbook = new ExcelJS.Workbook();
+
+		const templatePath = path.join(
+			process.cwd(),
+			'templates',
+			'provident-monitoring-template.xlsx',
+		);
+
+		await workbook.xlsx.readFile(templatePath);
+
+		const worksheet = workbook.worksheets[0];
+
+		const newRow = worksheet.addRow([
+			new Date(),
+			loan.loanType,
+			loan.term,
+			borrower.position,
+			borrower.code,
+			borrower.employeeNumber,
+			evaluation.finalLoanGranted,
+			evaluation.netPayAfterDeduction,
+			evaluation.existingDeduction,
+			evaluation.newDeduction,
+			evaluation.netPay,
+			borrower.lafNumber,
+			borrower.fullName,
+			coMaker.name,
+			coMaker.employeeNumber,
+			coMaker.contactNumber,
+			borrower.school,
+			loan.loanAmount,
+			evaluation.status,
+			'',
+			'',
+			'',
+			'',
+			'',
+			'',
+			evaluation.remarks?.join(', ') || '',
+		]);
+
+		newRow.commit();
+
+		const safeFileName = borrower.fullName.replace(/[^a-z0-9]/gi, '_');
+
+		const buffer = await workbook.xlsx.writeBuffer();
+
+		res.setHeader(
+			'Content-Type',
+			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		);
+
+		res.setHeader(
+			'Content-Disposition',
+			`attachment; filename="provident-monitoring-${safeFileName}.xlsx"`,
+		);
+
+		res.send(buffer);
+	} catch (error: any) {
+		res.status(500).json({
+			message: 'Error exporting monitoring file',
+			error: error.message,
+		});
+	}
+});
 
 // Delete data from database
 app.delete('/applications/:id', async (req, res) => {

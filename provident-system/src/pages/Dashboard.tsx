@@ -84,6 +84,8 @@ function Dashboard() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState('');
 
+	const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
 	// Delete request to backend
 	const handleDelete = async (id: string) => {
 		const confirmDelete = window.confirm(
@@ -286,6 +288,14 @@ function Dashboard() {
 		fetchApplications();
 	}, []);
 
+	const handleSelectApplication = (id: string) => {
+		setSelectedIds((prev) =>
+			prev.includes(id)
+				? prev.filter((selectedId) => selectedId !== id)
+				: [...prev, id],
+		);
+	};
+
 	return (
 		<main className='min-h-screen bg-gray-100 flex'>
 			{/* Sidebar */}
@@ -405,9 +415,46 @@ function Dashboard() {
 						)}
 
 						{error && <p className='text-sm text-red-600 mb-4'>{error}</p>}
+						<button
+							disabled={selectedIds.length === 0}
+							onClick={async () => {
+								const response = await fetch(
+									'http://localhost:5000/applications/export/monitoring/bulk',
+									{
+										method: 'POST',
+										headers: {
+											'Content-Type': 'application/json',
+										},
+										body: JSON.stringify({ ids: selectedIds }),
+									},
+								);
+
+								const blob = await response.blob();
+								const url = window.URL.createObjectURL(blob);
+
+								const link = document.createElement('a');
+								link.href = url;
+								link.download = 'provident-monitoring-selected.xlsx';
+								link.click();
+
+								window.URL.revokeObjectURL(url);
+							}}
+							className={
+								selectedIds.length === 0
+									? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed'
+									: 'bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition'
+							}
+						>
+							Export Selected Monitoring ({selectedIds.length})
+						</button>
+
 						<table className='min-w-full divide-y divide-gray-200'>
 							<thead className='bg-gray-50'>
 								<tr>
+									<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
+										Select
+									</th>
+
 									<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
 										Borrower
 									</th>
@@ -446,7 +493,7 @@ function Dashboard() {
 								{filteredApplications.length === 0 && (
 									<tr>
 										<td
-											colSpan={8}
+											colSpan={9}
 											className='px-6 py-8 text-center text-gray-500'
 										>
 											No applications found.
@@ -456,6 +503,14 @@ function Dashboard() {
 
 								{filteredApplications.map((app) => (
 									<tr key={app._id} className='hover:bg-gray-50 transition'>
+										<td className='px-6 py-4'>
+											<input
+												type='checkbox'
+												checked={selectedIds.includes(app._id)}
+												onChange={() => handleSelectApplication(app._id)}
+											/>
+										</td>
+
 										<td className='px-6 py-4'>
 											<div>
 												<p className='font-semibold text-gray-800'>
@@ -598,6 +653,15 @@ function Dashboard() {
 														Release
 													</button>
 												)}
+
+												<a
+													href={`http://localhost:5000/applications/${app._id}/export/monitoring`}
+													target='_blank'
+													rel='noopener noreferrer'
+													className='bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition'
+												>
+													Export Monitoring
+												</a>
 											</div>
 										</td>
 									</tr>
