@@ -53,6 +53,11 @@ const applicationSchema = new mongoose.Schema(
 			coMakerDocuments: Boolean,
 		},
 
+		soa: {
+			checkNumber: String,
+			lastMonth: String,
+		},
+
 		evaluation: {
 			netPay: {
 				type: Number,

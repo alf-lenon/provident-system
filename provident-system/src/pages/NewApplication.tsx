@@ -56,6 +56,11 @@ type FormData = {
 		approvedAppointment: boolean;
 		coMakerDocuments: boolean;
 	};
+
+	soa: {
+		checkNumber: string;
+		lastMonth: string;
+	};
 };
 
 type BackendResult = {
@@ -127,6 +132,11 @@ function NewApplication() {
 			latestPayslip: false,
 			approvedAppointment: false,
 			coMakerDocuments: false,
+		},
+
+		soa: {
+			checkNumber: '',
+			lastMonth: '',
 		},
 	});
 
@@ -203,6 +213,16 @@ function NewApplication() {
 			...prev,
 			checklist: {
 				...prev.checklist,
+				[field]: value,
+			},
+		}));
+	};
+
+	const handleSoaChange = (field: keyof FormData['soa'], value: string) => {
+		setFormData((prev) => ({
+			...prev,
+			soa: {
+				...prev.soa,
 				[field]: value,
 			},
 		}));
@@ -767,6 +787,38 @@ function NewApplication() {
 						)}
 					</div>
 				</section>
+
+				{formData.loan.loanType === 'Renewal' && (
+					<section className={sectionClass}>
+						<h2 className='text-lg font-semibold mb-4 text-gray-800'>
+							SOA Information
+						</h2>
+
+						<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+							<div>
+								<label className={labelClass}>SOA Check Number</label>
+								<input
+									type='text'
+									className={inputClass}
+									value={formData.soa.checkNumber}
+									onChange={(e) =>
+										handleSoaChange('checkNumber', e.target.value)
+									}
+								/>
+							</div>
+
+							<div>
+								<label className={labelClass}>Last Month SOA</label>
+								<input
+									type='text'
+									className={inputClass}
+									value={formData.soa.lastMonth}
+									onChange={(e) => handleSoaChange('lastMonth', e.target.value)}
+								/>
+							</div>
+						</div>
+					</section>
+				)}
 
 				{/* Evaluation */}
 				<section className={sectionClass}>

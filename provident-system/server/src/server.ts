@@ -121,6 +121,7 @@ const processApplicationData = (formData: any) => {
 };
 
 // Match term format to excel files
+// Convert term to years to match the excel format.
 const termToYears = (term: string) => {
 	const months = parseInt(term);
 
@@ -131,6 +132,7 @@ const termToYears = (term: string) => {
 	return years === 1 ? '1 Year' : `${years} Years`;
 };
 
+// Convert term to months to match the excel format.
 const termToMonths = (term: string) => {
 	const months = parseInt(term);
 
