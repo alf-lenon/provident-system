@@ -654,14 +654,40 @@ function Dashboard() {
 													</button>
 												)}
 
-												<a
-													href={`http://localhost:5000/applications/${app._id}/export/monitoring`}
-													target='_blank'
-													rel='noopener noreferrer'
-													className='bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition'
+												<select
+													defaultValue=''
+													onChange={(e) => {
+														const url = e.target.value;
+
+														if (!url) return;
+
+														window.open(url, '_blank');
+														e.target.value = '';
+													}}
+													className='border border-gray-300 text-sm px-3 py-2 rounded-lg bg-white hover:bg-gray-50 transition'
 												>
-													Export Monitoring
-												</a>
+													<option value='' disabled>
+														Export...
+													</option>
+
+													<option
+														value={`http://localhost:5000/applications/${app._id}/export/monitoring`}
+													>
+														Monitoring
+													</option>
+
+													<option
+														value={`http://localhost:5000/applications/${app._id}/export/sl`}
+													>
+														SL
+													</option>
+
+													<option
+														value={`http://localhost:5000/applications/${app._id}/export/dv`}
+													>
+														DV
+													</option>
+												</select>
 											</div>
 										</td>
 									</tr>

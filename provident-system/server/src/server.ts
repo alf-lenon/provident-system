@@ -141,6 +141,20 @@ const termToMonths = (term: string) => {
 	return `${months}`;
 };
 
+// Format name for DV (file 3)
+const formatNameForSheet = (fullName: string) => {
+	const parts = fullName.trim().split(' ');
+
+	const lastName = parts[parts.length - 1];
+	const firstAndMiddle = parts.slice(0, -1).join(' ');
+
+	return `${lastName}, ${firstAndMiddle}`.toUpperCase();
+};
+
+const formatNameForPayee = (fullName: string) => {
+	return fullName.toUpperCase();
+};
+
 // Save into database or Create new data
 app.post('/applications', async (req, res) => {
 	try {
@@ -787,6 +801,79 @@ app.get('/applications/:id/export/sl', async (req, res) => {
 	}
 });
 
+// Export DV
+app.get('/applications/:id/export/dv', async (req, res) => {
+	try {
+		const { id } = req.params;
+
+		const application = await ApplicationModel.findById(id);
+
+		if (!application) {
+			return res.status(404).json({ message: 'Application not found' });
+		}
+
+		const borrower = application.borrower!;
+		const loan = application.loan!;
+		const evaluation = application.evaluation!;
+
+		const workbook = new ExcelJS.Workbook();
+
+		const templatePath = path.join(
+			process.cwd(),
+			'templates',
+			'dv-template.xlsx',
+		);
+
+		await workbook.xlsx.readFile(templatePath);
+
+		const worksheet = workbook.getWorksheet('TEMPLATE');
+
+		if (!worksheet) {
+			return res.status(404).json({
+				message: 'TEMPLATE sheet not found',
+			});
+		}
+
+		const currentDate = new Date();
+		const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+		const year = currentDate.getFullYear();
+
+		const refNumber = `${year}-${month}-${borrower.lafNumber}`;
+
+		const sheetName = formatNameForSheet(borrower.fullName).slice(0, 31);
+		worksheet.name = sheetName;
+
+		worksheet.getCell('AD6').value = refNumber;
+		worksheet.getCell('E11').value = formatNameForPayee(borrower.fullName);
+		worksheet.getCell('E13').value = borrower.school;
+		worksheet.getCell('K17').value = borrower.position;
+		worksheet.getCell('L17').value = borrower.lafNumber;
+		worksheet.getCell('H23').value = Number(loan.loanAmount);
+		worksheet.getCell('H24').value = evaluation.existingBalance || 0;
+		worksheet.getCell('H25').value = evaluation.finalLoanGranted || 0;
+		worksheet.getCell('AE36').value = evaluation.finalLoanGranted || 0;
+
+		const safeFileName = borrower.fullName.replace(/[^a-z0-9]/gi, '_');
+
+		res.setHeader(
+			'Content-Type',
+			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		);
+
+		res.setHeader(
+			'Content-Disposition',
+			`attachment; filename="dv-${safeFileName}.xlsx"`,
+		);
+
+		await workbook.xlsx.write(res);
+		res.end();
+	} catch (error: any) {
+		res.status(500).json({
+			message: 'Error exporting DV file',
+			error: error.message,
+		});
+	}
+});
 // Delete data from database
 app.delete('/applications/:id', async (req, res) => {
 	try {
