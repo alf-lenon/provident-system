@@ -138,7 +138,7 @@ const termToMonths = (term: string) => {
 
 	if (!months || Number.isNaN(months)) return term;
 
-	return `${months} months`;
+	return `${months}`;
 };
 
 // Save into database or Create new data
@@ -513,6 +513,56 @@ app.post(
 	},
 );
 
+app.post(
+	'/applications/import-sl/debug',
+	upload.single('file'),
+	async (req, res) => {
+		try {
+			if (!req.file) {
+				return res.status(400).json({ message: 'No file uploaded' });
+			}
+
+			const workbook = new ExcelJS.Workbook();
+			await workbook.xlsx.readFile(req.file.path);
+
+			const worksheet = workbook.worksheets[0];
+
+			if (!worksheet) {
+				return res.status(400).json({ message: 'No worksheet found' });
+			}
+
+			const preview: any[] = [];
+
+			worksheet.eachRow((row, rowNumber) => {
+				if (rowNumber > 15) return;
+
+				const cells: any[] = [];
+
+				row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+					cells.push({
+						colNumber,
+						value: cell.text,
+					});
+				});
+
+				preview.push({
+					rowNumber,
+					cells,
+				});
+			});
+
+			res.json(preview);
+		} catch (error: any) {
+			console.error('SL debug error:', error);
+
+			res.status(500).json({
+				message: 'Error reading SL file',
+				error: error.message,
+			});
+		}
+	},
+);
+
 // Get saved data
 app.get('/applications', async (req, res) => {
 	const applications = await ApplicationModel.find();
@@ -601,6 +651,137 @@ app.get('/applications/:id/export/monitoring', async (req, res) => {
 	} catch (error: any) {
 		res.status(500).json({
 			message: 'Error exporting monitoring file',
+			error: error.message,
+		});
+	}
+});
+
+app.get('/debug/sl-template', async (req, res) => {
+	try {
+		const workbook = new ExcelJS.Workbook();
+
+		const templatePath = path.join(
+			process.cwd(),
+			'templates',
+			'sl-template-may-2026.xlsx',
+		);
+
+		await workbook.xlsx.readFile(templatePath);
+
+		const worksheet = workbook.worksheets[0];
+
+		const preview: any[] = [];
+
+		for (let rowNumber = 1; rowNumber <= 10; rowNumber++) {
+			const row = worksheet.getRow(rowNumber);
+
+			const cells: any[] = [];
+
+			for (let colNumber = 1; colNumber <= 30; colNumber++) {
+				cells.push({
+					colNumber,
+					value: row.getCell(colNumber).text,
+				});
+			}
+
+			preview.push({
+				rowNumber,
+				cells,
+			});
+		}
+
+		res.json(preview);
+	} catch (error: any) {
+		res.status(500).json({
+			message: 'Error reading SL template',
+			error: error.message,
+		});
+	}
+});
+
+// Export SL File
+app.get('/applications/:id/export/sl', async (req, res) => {
+	try {
+		const { id } = req.params;
+
+		const application = await ApplicationModel.findById(id);
+
+		if (!application) {
+			return res.status(404).json({
+				message: 'Application not found',
+			});
+		}
+
+		const borrower = application.borrower!;
+		const coMaker = application.coMaker!;
+		const loan = application.loan!;
+		const evaluation = application.evaluation!;
+
+		const workbook = new ExcelJS.Workbook();
+
+		const templatePath = path.join(
+			process.cwd(),
+			'templates',
+			'sl-template-may-2026.xlsx',
+		);
+
+		await workbook.xlsx.readFile(templatePath);
+
+		const worksheet = workbook.worksheets[0];
+
+		const currentDate = new Date();
+		const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+		const year = currentDate.getFullYear();
+
+		const refNumber = `${year}-${month}-${borrower.lafNumber}`;
+
+		const newRow = worksheet.addRow([], 'i');
+
+		newRow.getCell('B').value = loan.loanType.toUpperCase();
+		newRow.getCell('C').value = '';
+		newRow.getCell('D').value = refNumber;
+		newRow.getCell('E').value = borrower.fullName;
+		newRow.getCell('F').value = '';
+		newRow.getCell('G').value = '';
+		newRow.getCell('H').value = Number(loan.loanAmount);
+		newRow.getCell('I').value = evaluation.existingBalance || '';
+		newRow.getCell('J').value = evaluation.finalLoanGranted || 0;
+		newRow.getCell('K').value = '';
+		newRow.getCell('L').value = '';
+
+		newRow.getCell('Q').value = borrower.code;
+		newRow.getCell('R').value = borrower.employeeNumber;
+		newRow.getCell('S').value = termToMonths(loan.term);
+		newRow.getCell('T').value = evaluation.newDeduction;
+		newRow.getCell('U').value = borrower.position;
+		newRow.getCell('V').value = borrower.lafNumber;
+		newRow.getCell('W').value = borrower.school;
+		newRow.getCell('X').value = coMaker.name;
+		newRow.getCell('Y').value = coMaker.employeeNumber;
+		newRow.getCell('Z').value = loan.loanType;
+		newRow.getCell('AA').value = application.soa?.checkNumber || '';
+		newRow.getCell('AB').value = application.soa?.lastMonth || '';
+		newRow.getCell('AC').value = loan.accountNumber;
+
+		newRow.commit();
+
+		const safeFileName = borrower.fullName.replace(/[^a-z0-9]/gi, '_');
+
+		res.setHeader(
+			'Content-Type',
+			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		);
+
+		res.setHeader(
+			'Content-Disposition',
+			`attachment; filename="sl-${safeFileName}.xlsx"`,
+		);
+
+		await workbook.xlsx.write(res);
+		res.end();
+	} catch (error: any) {
+		res.status(500).json({
+			message: 'Error exporting SL file',
 			error: error.message,
 		});
 	}
