@@ -58,6 +58,10 @@ const applicationSchema = new mongoose.Schema(
 			lastMonth: String,
 		},
 
+		documentNumbers: {
+			dvNumber: String,
+		},
+
 		evaluation: {
 			netPay: {
 				type: Number,

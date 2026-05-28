@@ -490,6 +490,98 @@ app.post('/applications/export/monitoring/bulk', async (req, res) => {
 	}
 });
 
+app.post('/applications/export/payroll/bulk', async (req, res) => {
+	try {
+		const { ids } = req.body;
+
+		if (!ids || !Array.isArray(ids) || ids.length === 0) {
+			return res.status(400).json({
+				message: 'No application IDs provided',
+			});
+		}
+
+		const applications = await ApplicationModel.find({
+			_id: { $in: ids },
+		});
+
+		if (applications.length === 0) {
+			return res.status(404).json({
+				message: 'No applications found',
+			});
+		}
+
+		const workbook = new ExcelJS.Workbook();
+
+		const templatePath = path.join(
+			process.cwd(),
+			'templates',
+			'payroll-template.xlsx',
+		);
+
+		await workbook.xlsx.readFile(templatePath);
+
+		const worksheet = workbook.getWorksheet('TEMPLATE');
+
+		if (!worksheet) {
+			return res.status(404).json({
+				message: 'TEMPLATE sheet not found',
+			});
+		}
+
+		const firstDvNumber = applications[0].documentNumbers?.dvNumber || 'START';
+		const lastDvNumber =
+			applications[applications.length - 1].documentNumbers?.dvNumber || 'END';
+
+		worksheet.name = `${firstDvNumber} TO ${lastDvNumber}`.slice(0, 31);
+
+		const startRow = 14;
+
+		applications.forEach((application, index) => {
+			const borrower = application.borrower!;
+			const loan = application.loan!;
+			const evaluation = application.evaluation!;
+
+			const rowNumber = startRow + index;
+			const row = worksheet.getRow(rowNumber);
+
+			row.getCell('A').value = index + 1;
+			row.getCell('B').value = formatNameForSheet(borrower.fullName);
+			row.getCell('C').value = application.documentNumbers?.dvNumber || '';
+			row.getCell('D').value = borrower.employeeNumber;
+			row.getCell('E').value = borrower.school;
+			row.getCell('F').value = 'P';
+			row.getCell('G').value = evaluation.finalLoanGranted || 0;
+			row.getCell('H').value = index + 1;
+			row.getCell('I').value = loan.accountNumber;
+
+			row.commit();
+		});
+
+		const safeFileName = `${firstDvNumber}_TO_${lastDvNumber}`.replace(
+			/[^a-z0-9_-]/gi,
+			'_',
+		);
+
+		res.setHeader(
+			'Content-Type',
+			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		);
+
+		res.setHeader(
+			'Content-Disposition',
+			`attachment; filename="payroll-${safeFileName}.xlsx"`,
+		);
+
+		await workbook.xlsx.write(res);
+		res.end();
+	} catch (error: any) {
+		res.status(500).json({
+			message: 'Error exporting payroll file',
+			error: error.message,
+		});
+	}
+});
+
 app.post(
 	'/applications/import-monitoring/debug',
 	upload.single('file'),
@@ -743,11 +835,7 @@ app.get('/applications/:id/export/sl', async (req, res) => {
 
 		const worksheet = workbook.worksheets[0];
 
-		const currentDate = new Date();
-		const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-		const year = currentDate.getFullYear();
-
-		const refNumber = `${year}-${month}-${borrower.lafNumber}`;
+		const refNumber = application.documentNumbers?.dvNumber || '';
 
 		const newRow = worksheet.addRow([], 'i');
 
@@ -838,7 +926,7 @@ app.get('/applications/:id/export/dv', async (req, res) => {
 		const month = String(currentDate.getMonth() + 1).padStart(2, '0');
 		const year = currentDate.getFullYear();
 
-		const refNumber = `${year}-${month}-${borrower.lafNumber}`;
+		const refNumber = application.documentNumbers?.dvNumber || '';
 
 		const sheetName = formatNameForSheet(borrower.fullName).slice(0, 31);
 		worksheet.name = sheetName;

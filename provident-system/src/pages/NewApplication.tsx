@@ -61,6 +61,10 @@ type FormData = {
 		checkNumber: string;
 		lastMonth: string;
 	};
+
+	documentNumbers: {
+		dvNumber: string;
+	};
 };
 
 type BackendResult = {
@@ -137,6 +141,10 @@ function NewApplication() {
 		soa: {
 			checkNumber: '',
 			lastMonth: '',
+		},
+
+		documentNumbers: {
+			dvNumber: '',
 		},
 	});
 
@@ -223,6 +231,19 @@ function NewApplication() {
 			...prev,
 			soa: {
 				...prev.soa,
+				[field]: value,
+			},
+		}));
+	};
+
+	const handleDocumentNumberChange = (
+		field: keyof FormData['documentNumbers'],
+		value: string,
+	) => {
+		setFormData((prev) => ({
+			...prev,
+			documentNumbers: {
+				...prev.documentNumbers,
 				[field]: value,
 			},
 		}));
@@ -819,6 +840,28 @@ function NewApplication() {
 						</div>
 					</section>
 				)}
+
+				<section className={sectionClass}>
+					<h2 className='text-lg font-semibold mb-4 text-gray-800'>
+						Document Numbers
+					</h2>
+
+					<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+						<div>
+							<label className={labelClass}>D.V Number / REF</label>
+
+							<input
+								type='text'
+								className={inputClass}
+								value={formData.documentNumbers.dvNumber}
+								onChange={(e) =>
+									handleDocumentNumberChange('dvNumber', e.target.value)
+								}
+								placeholder='2026-05-4079'
+							/>
+						</div>
+					</div>
+				</section>
 
 				{/* Evaluation */}
 				<section className={sectionClass}>
