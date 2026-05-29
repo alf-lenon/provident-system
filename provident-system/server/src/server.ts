@@ -144,8 +144,11 @@ const termToMonths = (term: string) => {
 
 // Format name for DV (file 3)
 const formatNameForSheet = (fullName: string) => {
-	const parts = fullName.trim().split(' ');
+	if (fullName.includes(',')) {
+		return fullName.toUpperCase();
+	}
 
+	const parts = fullName.trim().split(' ');
 	const lastName = parts[parts.length - 1];
 	const firstAndMiddle = parts.slice(0, -1).join(' ');
 
@@ -153,9 +156,14 @@ const formatNameForSheet = (fullName: string) => {
 };
 
 const formatNameForPayee = (fullName: string) => {
+	if (fullName.includes(',')) {
+		const [lastName, firstAndMiddle] = fullName.split(',');
+
+		return `${firstAndMiddle.trim()} ${lastName.trim()}`.toUpperCase();
+	}
+
 	return fullName.toUpperCase();
 };
-
 // Save into database or Create new data
 app.post('/applications', async (req, res) => {
 	try {
@@ -433,7 +441,7 @@ app.post('/applications/export/monitoring/bulk', async (req, res) => {
 
 		if (!fs.existsSync(templatePath)) {
 			return res.status(404).json({
-				message: 'SL template not uploaded yet',
+				message: 'Monitoring template not uploaded yet',
 			});
 		}
 
@@ -447,7 +455,7 @@ app.post('/applications/export/monitoring/bulk', async (req, res) => {
 			const loan = application.loan!;
 			const evaluation = application.evaluation!;
 
-			worksheet.addRow([
+			const newRow = worksheet.addRow([
 				new Date(),
 				loan.loanType,
 				termToYears(loan.term),
@@ -459,13 +467,13 @@ app.post('/applications/export/monitoring/bulk', async (req, res) => {
 				evaluation.existingDeduction,
 				evaluation.newDeduction,
 				evaluation.netPay,
-				borrower.lafNumber,
+				Number(borrower.lafNumber),
 				borrower.fullName,
 				coMaker.name,
 				coMaker.employeeNumber,
 				coMaker.contactNumber,
 				borrower.school,
-				loan.loanAmount,
+				Number(loan.loanAmount),
 				evaluation.status,
 				'',
 				'',
@@ -475,6 +483,23 @@ app.post('/applications/export/monitoring/bulk', async (req, res) => {
 				'',
 				evaluation.remarks?.join(', ') || '',
 			]);
+
+			const templateRow = worksheet.getRow(2902);
+
+			templateRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+				newRow.getCell(colNumber).style = { ...cell.style };
+			});
+
+			newRow.getCell('L').style = {
+				...templateRow.getCell('L').style,
+			};
+
+			newRow.getCell('R').style = {
+				...templateRow.getCell('R').style,
+			};
+
+			newRow.height = templateRow.height;
+			newRow.commit();
 		});
 
 		const buffer = await workbook.xlsx.writeBuffer();
@@ -493,6 +518,112 @@ app.post('/applications/export/monitoring/bulk', async (req, res) => {
 	} catch (error: any) {
 		res.status(500).json({
 			message: 'Error exporting selected monitoring records',
+			error: error.message,
+		});
+	}
+});
+
+app.post('/applications/export/sl/bulk', async (req, res) => {
+	try {
+		const { ids } = req.body;
+
+		if (!ids || !Array.isArray(ids) || ids.length === 0) {
+			return res.status(400).json({
+				message: 'No application IDs provided',
+			});
+		}
+
+		const applications = await ApplicationModel.find({
+			_id: { $in: ids },
+		});
+
+		if (applications.length === 0) {
+			return res.status(404).json({
+				message: 'No applications found',
+			});
+		}
+
+		const workbook = new ExcelJS.Workbook();
+
+		const templatePath = path.join(
+			process.cwd(),
+			'uploads',
+			'templates',
+			'sl.xlsx',
+		);
+
+		if (!fs.existsSync(templatePath)) {
+			return res.status(404).json({
+				message: 'SL template not uploaded yet',
+			});
+		}
+
+		await workbook.xlsx.readFile(templatePath);
+
+		const worksheet = workbook.worksheets[0];
+
+		applications.forEach((application) => {
+			const borrower = application.borrower!;
+			const coMaker = application.coMaker!;
+			const loan = application.loan!;
+			const evaluation = application.evaluation!;
+
+			const refNumber = application.documentNumbers?.dvNumber || '';
+
+			const newRow = worksheet.addRow([], 'i');
+
+			const templateRow = worksheet.getRow(18); // CRUZ, MARGIE S. row
+
+			templateRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+				newRow.getCell(colNumber).style = { ...cell.style };
+			});
+
+			newRow.getCell('B').value = loan.loanType.toUpperCase();
+			newRow.getCell('C').value = '';
+			newRow.getCell('D').value = refNumber;
+			newRow.getCell('E').value = borrower.fullName;
+			newRow.getCell('F').value = '';
+			newRow.getCell('G').value = null;
+			newRow.getCell('H').value = Number(loan.loanAmount || 0);
+			newRow.getCell('I').value = Number(evaluation.existingBalance || 0);
+			newRow.getCell('J').value = Number(evaluation.finalLoanGranted || 0);
+
+			newRow.getCell('K').value = {
+				formula: `N(K${newRow.number - 1})+N(G${newRow.number})-N(J${newRow.number})`,
+				result: 0,
+			};
+			newRow.getCell('Q').value = borrower.code;
+			newRow.getCell('R').value = borrower.employeeNumber;
+			newRow.getCell('S').value = termToMonths(loan.term);
+			newRow.getCell('T').value = evaluation.newDeduction;
+			newRow.getCell('U').value = borrower.position;
+			newRow.getCell('V').value = borrower.lafNumber;
+			newRow.getCell('W').value = borrower.school;
+			newRow.getCell('X').value = coMaker.name;
+			newRow.getCell('Y').value = coMaker.employeeNumber;
+			newRow.getCell('Z').value = loan.loanType;
+			newRow.getCell('AA').value = application.soa?.checkNumber || '';
+			newRow.getCell('AB').value = application.soa?.lastMonth || '';
+			newRow.getCell('AC').value = loan.accountNumber;
+
+			newRow.commit();
+		});
+
+		res.setHeader(
+			'Content-Type',
+			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		);
+
+		res.setHeader(
+			'Content-Disposition',
+			'attachment; filename="sl-bulk-export.xlsx"',
+		);
+
+		await workbook.xlsx.write(res);
+		res.end();
+	} catch (error: any) {
+		res.status(500).json({
+			message: 'Error exporting selected SL records',
 			error: error.message,
 		});
 	}
@@ -798,7 +929,7 @@ app.get('/applications/:id/export/monitoring', async (req, res) => {
 		const newRow = worksheet.addRow([
 			new Date(),
 			loan.loanType,
-			loan.term,
+			termToYears(loan.term),
 			borrower.position,
 			borrower.code,
 			borrower.employeeNumber,
@@ -807,13 +938,13 @@ app.get('/applications/:id/export/monitoring', async (req, res) => {
 			evaluation.existingDeduction,
 			evaluation.newDeduction,
 			evaluation.netPay,
-			borrower.lafNumber,
+			Number(borrower.lafNumber),
 			borrower.fullName,
 			coMaker.name,
 			coMaker.employeeNumber,
 			coMaker.contactNumber,
 			borrower.school,
-			loan.loanAmount,
+			Number(loan.loanAmount),
 			evaluation.status,
 			'',
 			'',
@@ -823,6 +954,14 @@ app.get('/applications/:id/export/monitoring', async (req, res) => {
 			'',
 			evaluation.remarks?.join(', ') || '',
 		]);
+
+		const templateRow = worksheet.getRow(2902);
+
+		templateRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+			newRow.getCell(colNumber).style = { ...cell.style };
+		});
+
+		newRow.height = templateRow.height;
 
 		newRow.commit();
 
@@ -940,17 +1079,26 @@ app.get('/applications/:id/export/sl', async (req, res) => {
 
 		const newRow = worksheet.addRow([], 'i');
 
+		const templateRow = worksheet.getRow(18); // CRUZ, MARGIE S. row
+
+		templateRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+			newRow.getCell(colNumber).style = { ...cell.style };
+		});
+
 		newRow.getCell('B').value = loan.loanType.toUpperCase();
 		newRow.getCell('C').value = '';
 		newRow.getCell('D').value = refNumber;
 		newRow.getCell('E').value = borrower.fullName;
 		newRow.getCell('F').value = '';
-		newRow.getCell('G').value = '';
-		newRow.getCell('H').value = Number(loan.loanAmount);
-		newRow.getCell('I').value = evaluation.existingBalance || '';
-		newRow.getCell('J').value = evaluation.finalLoanGranted || 0;
-		newRow.getCell('K').value = '';
-		newRow.getCell('L').value = '';
+		newRow.getCell('G').value = null;
+		newRow.getCell('H').value = Number(loan.loanAmount || 0);
+		newRow.getCell('I').value = Number(evaluation.existingBalance || 0);
+		newRow.getCell('J').value = Number(evaluation.finalLoanGranted || 0);
+
+		newRow.getCell('K').value = {
+			formula: `N(K${newRow.number - 1})+N(G${newRow.number})-N(J${newRow.number})`,
+			result: 0,
+		};
 
 		newRow.getCell('Q').value = borrower.code;
 		newRow.getCell('R').value = borrower.employeeNumber;
@@ -1029,10 +1177,6 @@ app.get('/applications/:id/export/dv', async (req, res) => {
 				message: 'TEMPLATE sheet not found',
 			});
 		}
-
-		const currentDate = new Date();
-		const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-		const year = currentDate.getFullYear();
 
 		const refNumber = application.documentNumbers?.dvNumber || '';
 

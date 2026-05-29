@@ -452,6 +452,39 @@ function Dashboard() {
 							disabled={selectedIds.length === 0}
 							onClick={async () => {
 								const response = await fetch(
+									'http://localhost:5000/applications/export/sl/bulk',
+									{
+										method: 'POST',
+										headers: {
+											'Content-Type': 'application/json',
+										},
+										body: JSON.stringify({ ids: selectedIds }),
+									},
+								);
+
+								const blob = await response.blob();
+								const url = window.URL.createObjectURL(blob);
+
+								const link = document.createElement('a');
+								link.href = url;
+								link.download = 'sl-selected.xlsx';
+								link.click();
+
+								window.URL.revokeObjectURL(url);
+							}}
+							className={
+								selectedIds.length === 0
+									? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed'
+									: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition'
+							}
+						>
+							Export Selected SL ({selectedIds.length})
+						</button>
+
+						<button
+							disabled={selectedIds.length === 0}
+							onClick={async () => {
+								const response = await fetch(
 									'http://localhost:5000/applications/export/payroll/bulk',
 									{
 										method: 'POST',
@@ -479,6 +512,18 @@ function Dashboard() {
 							}
 						>
 							Export Selected Payroll ({selectedIds.length})
+						</button>
+
+						<button
+							disabled={selectedIds.length === 0}
+							onClick={() => setSelectedIds([])}
+							className={
+								selectedIds.length === 0
+									? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed'
+									: 'bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition'
+							}
+						>
+							Clear Selected
 						</button>
 
 						<table className='min-w-full divide-y divide-gray-200'>
