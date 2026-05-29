@@ -1,3 +1,4 @@
+import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
 import ExcelJS from 'exceljs';
@@ -425,9 +426,16 @@ app.post('/applications/export/monitoring/bulk', async (req, res) => {
 
 		const templatePath = path.join(
 			process.cwd(),
+			'uploads',
 			'templates',
-			'provident-monitoring-template.xlsx',
+			'monitoring.xlsx',
 		);
+
+		if (!fs.existsSync(templatePath)) {
+			return res.status(404).json({
+				message: 'SL template not uploaded yet',
+			});
+		}
 
 		await workbook.xlsx.readFile(templatePath);
 
@@ -514,9 +522,16 @@ app.post('/applications/export/payroll/bulk', async (req, res) => {
 
 		const templatePath = path.join(
 			process.cwd(),
+			'uploads',
 			'templates',
-			'payroll-template.xlsx',
+			'payroll.xlsx',
 		);
+
+		if (!fs.existsSync(templatePath)) {
+			return res.status(404).json({
+				message: 'Payroll template not uploaded yet',
+			});
+		}
 
 		await workbook.xlsx.readFile(templatePath);
 
@@ -669,6 +684,71 @@ app.post(
 	},
 );
 
+const templateStorage = multer.diskStorage({
+	destination: (req, file, cb) => {
+		cb(null, 'uploads/templates');
+	},
+	filename: (req, file, cb) => {
+		const templateType = req.params.type;
+		cb(null, `${templateType}.xlsx`);
+	},
+});
+
+const templateUpload = multer({
+	storage: templateStorage,
+
+	fileFilter: (req, file, cb) => {
+		const isExcel =
+			file.mimetype ===
+				'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+			file.originalname.endsWith('.xlsx');
+
+		if (!isExcel) {
+			return cb(new Error('Only Excel files are allowed'));
+		}
+
+		cb(null, true);
+	},
+});
+
+// Convert file name into fixed excel file name with validation
+app.post(
+	'/templates/:type/upload',
+	templateUpload.single('file'),
+	(req, res) => {
+		const type = String(req.params.type);
+
+		const allowedTypes = ['monitoring', 'sl', 'dv', 'payroll'];
+
+		if (!allowedTypes.includes(type)) {
+			return res.status(400).json({
+				message: 'Invalid template type',
+			});
+		}
+
+		if (!req.file) {
+			return res.status(400).json({
+				message: 'No file uploaded',
+			});
+		}
+
+		res.json({
+			message: `${type} template uploaded successfully`,
+			file: req.file.filename,
+		});
+	},
+);
+
+app.get('/templates/status', (req, res) => {
+	const templateDir = path.join(process.cwd(), 'uploads', 'templates');
+
+	res.json({
+		monitoring: fs.existsSync(path.join(templateDir, 'monitoring.xlsx')),
+		sl: fs.existsSync(path.join(templateDir, 'sl.xlsx')),
+		dv: fs.existsSync(path.join(templateDir, 'dv.xlsx')),
+		payroll: fs.existsSync(path.join(templateDir, 'payroll.xlsx')),
+	});
+});
 // Get saved data
 app.get('/applications', async (req, res) => {
 	const applications = await ApplicationModel.find();
@@ -700,9 +780,16 @@ app.get('/applications/:id/export/monitoring', async (req, res) => {
 
 		const templatePath = path.join(
 			process.cwd(),
+			'uploads',
 			'templates',
-			'provident-monitoring-template.xlsx',
+			'monitoring.xlsx',
 		);
+
+		if (!fs.existsSync(templatePath)) {
+			return res.status(404).json({
+				message: 'Monitoring template not uploaded yet',
+			});
+		}
 
 		await workbook.xlsx.readFile(templatePath);
 
@@ -768,9 +855,16 @@ app.get('/debug/sl-template', async (req, res) => {
 
 		const templatePath = path.join(
 			process.cwd(),
+			'uploads',
 			'templates',
-			'sl-template-may-2026.xlsx',
+			'sl.xlsx',
 		);
+
+		if (!fs.existsSync(templatePath)) {
+			return res.status(404).json({
+				message: 'SL template not uploaded yet',
+			});
+		}
 
 		await workbook.xlsx.readFile(templatePath);
 
@@ -827,9 +921,16 @@ app.get('/applications/:id/export/sl', async (req, res) => {
 
 		const templatePath = path.join(
 			process.cwd(),
+			'uploads',
 			'templates',
-			'sl-template-may-2026.xlsx',
+			'sl.xlsx',
 		);
+
+		if (!fs.existsSync(templatePath)) {
+			return res.status(404).json({
+				message: 'SL template not uploaded yet',
+			});
+		}
 
 		await workbook.xlsx.readFile(templatePath);
 
@@ -908,9 +1009,16 @@ app.get('/applications/:id/export/dv', async (req, res) => {
 
 		const templatePath = path.join(
 			process.cwd(),
+			'uploads',
 			'templates',
-			'dv-template.xlsx',
+			'dv.xlsx',
 		);
+
+		if (!fs.existsSync(templatePath)) {
+			return res.status(404).json({
+				message: 'DV template not uploaded yet',
+			});
+		}
 
 		await workbook.xlsx.readFile(templatePath);
 
