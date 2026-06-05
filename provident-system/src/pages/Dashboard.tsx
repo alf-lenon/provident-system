@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import RefundModal from '../components/RefundModal';
 
 // TypeScript
 type Application = {
@@ -85,6 +86,12 @@ function Dashboard() {
 	const [error, setError] = useState('');
 
 	const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+	const [currentPage, setCurrentPage] = useState(1);
+	const [totalPages, setTotalPages] = useState(1);
+	const [totalApplications, setTotalApplications] = useState(0);
+
+	const [showRefundModal, setShowRefundModal] = useState(false);
 
 	// Delete request to backend
 	const handleDelete = async (id: string) => {
@@ -262,31 +269,38 @@ function Dashboard() {
 	};
 
 	// Fetch to backend
-	useEffect(() => {
-		const fetchApplications = async () => {
-			try {
-				setIsLoading(true);
-				setError('');
 
-				const response = await fetch('http://localhost:5000/applications');
-				const data = await response.json();
+	const fetchApplications = useCallback(async () => {
+		try {
+			setIsLoading(true);
+			setError('');
 
-				if (!response.ok) {
-					setError(data.message || 'Failed to fetch applications');
-					return;
-				}
+			const response = await fetch(
+				`http://localhost:5000/applications?page=${currentPage}&limit=20&search=${searchTerm}`,
+			);
 
-				setApplications(data);
-			} catch (error) {
-				console.error('error', error);
-				setError('Could not connect to the server.');
-			} finally {
-				setIsLoading(false);
+			const data = await response.json();
+
+			if (!response.ok) {
+				setError(data.message || 'Failed to fetch applications');
+				return;
 			}
-		};
 
+			setApplications(data.applications);
+			setCurrentPage(data.currentPage);
+			setTotalPages(data.totalPages);
+			setTotalApplications(data.totalApplications);
+		} catch (error) {
+			console.error('error', error);
+			setError('Could not connect to the server.');
+		} finally {
+			setIsLoading(false);
+		}
+	}, [currentPage, searchTerm]);
+
+	useEffect(() => {
 		fetchApplications();
-	}, []);
+	}, [fetchApplications]);
 
 	const handleSelectApplication = (id: string) => {
 		setSelectedIds((prev) =>
@@ -333,6 +347,13 @@ function Dashboard() {
 					<button className='bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition'>
 						New Application
 					</button>
+
+					<button
+						onClick={() => setShowRefundModal(true)}
+						className='px-4 py-2 bg-orange-600 text-white rounded-lg'
+					>
+						+ New Refund
+					</button>
 				</header>
 
 				{/* Stats Cards */}
@@ -340,7 +361,7 @@ function Dashboard() {
 					<div className='bg-white p-5 rounded-xl shadow'>
 						<p className='text-sm text-gray-500'>Total Applications</p>
 						<h3 className='text-2xl font-bold text-gray-800'>
-							{applications.length}
+							{totalApplications}
 						</h3>
 					</div>
 
@@ -485,6 +506,42 @@ function Dashboard() {
 							disabled={selectedIds.length === 0}
 							onClick={async () => {
 								const response = await fetch(
+									'http://localhost:5000/applications/export/dv/bulk',
+									{
+										method: 'POST',
+										headers: {
+											'Content-Type': 'application/json',
+										},
+										body: JSON.stringify({ ids: selectedIds }),
+									},
+								);
+
+								const blob = await response.blob();
+
+								const url = window.URL.createObjectURL(blob);
+
+								const link = document.createElement('a');
+								link.href = url;
+								link.download = 'dv-selected.zip';
+								link.click();
+
+								window.URL.revokeObjectURL(url);
+
+								window.URL.revokeObjectURL(url);
+							}}
+							className={
+								selectedIds.length === 0
+									? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed'
+									: 'bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition'
+							}
+						>
+							Export Selected DV ({selectedIds.length})
+						</button>
+
+						<button
+							disabled={selectedIds.length === 0}
+							onClick={async () => {
+								const response = await fetch(
 									'http://localhost:5000/applications/export/payroll/bulk',
 									{
 										method: 'POST',
@@ -500,7 +557,7 @@ function Dashboard() {
 
 								const link = document.createElement('a');
 								link.href = url;
-								link.download = 'payroll-selected.xlsx';
+								link.download = 'payroll.xlsx';
 								link.click();
 
 								window.URL.revokeObjectURL(url);
@@ -597,8 +654,16 @@ function Dashboard() {
 											</div>
 										</td>
 
-										<td className='px-6 py-4 text-gray-700'>
-											{app.loan.loanType}
+										<td className='px-6 py-4'>
+											{app.loan.loanType === 'Refund' ? (
+												<span className='bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-medium'>
+													Refund
+												</span>
+											) : (
+												<span className='text-gray-700'>
+													{app.loan.loanType}
+												</span>
+											)}
 										</td>
 
 										<td className='px-6 py-4 text-gray-700'>
@@ -772,6 +837,28 @@ function Dashboard() {
 								))}
 							</tbody>
 						</table>
+
+						<div className='flex items-center justify-between mt-4'>
+							<button
+								disabled={currentPage === 1}
+								onClick={() => setCurrentPage((prev) => prev - 1)}
+								className='px-4 py-2 border rounded-lg disabled:opacity-50'
+							>
+								Previous
+							</button>
+
+							<p className='text-sm text-gray-600'>
+								Page {currentPage} of {totalPages}
+							</p>
+
+							<button
+								disabled={currentPage === totalPages}
+								onClick={() => setCurrentPage((prev) => prev + 1)}
+								className='px-4 py-2 border rounded-lg disabled:opacity-50'
+							>
+								Next
+							</button>
+						</div>
 					</div>
 				</div>
 			</section>
@@ -1628,6 +1715,13 @@ function Dashboard() {
 						</div>
 					</div>
 				</div>
+			)}
+
+			{showRefundModal && (
+				<RefundModal
+					onClose={() => setShowRefundModal(false)}
+					onSuccess={() => fetchApplications()}
+				/>
 			)}
 		</main>
 	);

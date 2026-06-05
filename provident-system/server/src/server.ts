@@ -1,3 +1,4 @@
+import archiver from 'archiver';
 import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
@@ -164,6 +165,43 @@ const formatNameForPayee = (fullName: string) => {
 
 	return fullName.toUpperCase();
 };
+
+const isRefundRecord = (application: any) => {
+	return application.loan?.loanType === 'Refund';
+};
+
+const applyMonitoringRowStyle = (row: ExcelJS.Row) => {
+	row.eachCell({ includeEmpty: true }, (cell) => {
+		cell.font = { name: 'Arial', size: 10 };
+		cell.alignment = {
+			vertical: 'middle',
+			horizontal: 'center',
+			wrapText: true,
+		};
+		cell.border = {
+			top: { style: 'thin' },
+			left: { style: 'thin' },
+			bottom: { style: 'thin' },
+			right: { style: 'thin' },
+		};
+	});
+
+	['M', 'N', 'Q'].forEach((col) => {
+		row.getCell(col).alignment = {
+			vertical: 'middle',
+			horizontal: 'left',
+			wrapText: true,
+		};
+	});
+
+	['G', 'H', 'I', 'J', 'K', 'R'].forEach((col) => {
+		row.getCell(col).numFmt = '#,##0.00';
+	});
+
+	row.getCell('L').numFmt = '@';
+	row.height = 18;
+};
+
 // Save into database or Create new data
 app.post('/applications', async (req, res) => {
 	try {
@@ -447,7 +485,10 @@ app.post('/applications/export/monitoring/bulk', async (req, res) => {
 
 		await workbook.xlsx.readFile(templatePath);
 
-		const worksheet = workbook.worksheets[0];
+		const worksheet =
+			workbook.getWorksheet('MONITORING') || workbook.worksheets[0];
+
+		worksheet.autoFilter = undefined;
 
 		applications.forEach((application) => {
 			const borrower = application.borrower!;
@@ -455,14 +496,19 @@ app.post('/applications/export/monitoring/bulk', async (req, res) => {
 			const loan = application.loan!;
 			const evaluation = application.evaluation!;
 
-			const newRow = worksheet.addRow([
+			const nextRowNumber = worksheet.lastRow
+				? worksheet.lastRow.number + 1
+				: 2;
+			const newRow = worksheet.getRow(nextRowNumber);
+
+			const values = [
 				new Date(),
-				loan.loanType,
-				termToYears(loan.term),
+				isRefundRecord(application) ? 'Refund' : loan.loanType,
+				isRefundRecord(application) ? '' : termToYears(loan.term),
 				borrower.position,
 				borrower.code,
 				borrower.employeeNumber,
-				evaluation.finalLoanGranted,
+				Number(evaluation.finalLoanGranted || 0),
 				evaluation.netPayAfterDeduction,
 				evaluation.existingDeduction,
 				evaluation.newDeduction,
@@ -473,8 +519,8 @@ app.post('/applications/export/monitoring/bulk', async (req, res) => {
 				coMaker.employeeNumber,
 				coMaker.contactNumber,
 				borrower.school,
-				Number(loan.loanAmount),
-				evaluation.status,
+				Number(loan.loanAmount || 0),
+				isRefundRecord(application) ? 'Refund' : evaluation.status,
 				'',
 				'',
 				'',
@@ -482,9 +528,13 @@ app.post('/applications/export/monitoring/bulk', async (req, res) => {
 				'',
 				'',
 				evaluation.remarks?.join(', ') || '',
-			]);
+			];
 
-			const templateRow = worksheet.getRow(2902);
+			values.forEach((value, index) => {
+				newRow.getCell(index + 1).value = value;
+			});
+
+			/* const templateRow = worksheet.getRow(2902);
 
 			templateRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
 				newRow.getCell(colNumber).style = { ...cell.style };
@@ -498,7 +548,8 @@ app.post('/applications/export/monitoring/bulk', async (req, res) => {
 				...templateRow.getCell('R').style,
 			};
 
-			newRow.height = templateRow.height;
+			newRow.height = templateRow.height; */
+			applyMonitoringRowStyle(newRow);
 			newRow.commit();
 		});
 
@@ -578,14 +629,18 @@ app.post('/applications/export/sl/bulk', async (req, res) => {
 				newRow.getCell(colNumber).style = { ...cell.style };
 			});
 
-			newRow.getCell('B').value = loan.loanType.toUpperCase();
+			newRow.getCell('B').value = isRefundRecord(application)
+				? 'REFUND'
+				: loan.loanType.toUpperCase();
+
 			newRow.getCell('C').value = '';
 			newRow.getCell('D').value = refNumber;
 			newRow.getCell('E').value = borrower.fullName;
-			newRow.getCell('F').value = '';
+			newRow.getCell('F').value = isRefundRecord(application) ? 'Refund' : '';
 			newRow.getCell('G').value = null;
 			newRow.getCell('H').value = Number(loan.loanAmount || 0);
-			newRow.getCell('I').value = Number(evaluation.existingBalance || 0);
+			newRow.getCell('I').value = 0;
+
 			newRow.getCell('J').value = Number(evaluation.finalLoanGranted || 0);
 
 			newRow.getCell('K').value = {
@@ -601,7 +656,9 @@ app.post('/applications/export/sl/bulk', async (req, res) => {
 			newRow.getCell('W').value = borrower.school;
 			newRow.getCell('X').value = coMaker.name;
 			newRow.getCell('Y').value = coMaker.employeeNumber;
-			newRow.getCell('Z').value = loan.loanType;
+			newRow.getCell('Z').value = isRefundRecord(application)
+				? 'Refund'
+				: loan.loanType;
 			newRow.getCell('AA').value = application.soa?.checkNumber || '';
 			newRow.getCell('AB').value = application.soa?.lastMonth || '';
 			newRow.getCell('AC').value = loan.accountNumber;
@@ -624,6 +681,106 @@ app.post('/applications/export/sl/bulk', async (req, res) => {
 	} catch (error: any) {
 		res.status(500).json({
 			message: 'Error exporting selected SL records',
+			error: error.message,
+		});
+	}
+});
+
+app.post('/applications/export/dv/bulk', async (req, res) => {
+	try {
+		const { ids } = req.body;
+
+		if (!ids || !Array.isArray(ids) || ids.length === 0) {
+			return res.status(400).json({ message: 'No application IDs provided' });
+		}
+
+		const applications = await ApplicationModel.find({
+			_id: { $in: ids },
+		});
+
+		if (applications.length === 0) {
+			return res.status(404).json({ message: 'No applications found' });
+		}
+
+		const templatePath = path.join(
+			process.cwd(),
+			'uploads',
+			'templates',
+			'dv.xlsx',
+		);
+
+		if (!fs.existsSync(templatePath)) {
+			return res.status(404).json({
+				message: 'DV template not uploaded yet',
+			});
+		}
+
+		res.setHeader('Content-Type', 'application/zip');
+		res.setHeader(
+			'Content-Disposition',
+			'attachment; filename="dv-selected.zip"',
+		);
+
+		const archive = archiver('zip', {
+			zlib: { level: 9 },
+		});
+
+		archive.pipe(res);
+
+		for (const application of applications) {
+			const borrower = application.borrower!;
+			const loan = application.loan!;
+			const evaluation = application.evaluation!;
+
+			const workbook = new ExcelJS.Workbook();
+
+			await workbook.xlsx.readFile(templatePath);
+
+			const worksheet = workbook.getWorksheet('TEMPLATE');
+
+			if (!worksheet) {
+				continue;
+			}
+
+			worksheet.name = formatNameForSheet(borrower.fullName).slice(0, 31);
+
+			worksheet.getCell('AD6').value =
+				application.documentNumbers?.dvNumber || '';
+
+			worksheet.getCell('E11').value = formatNameForPayee(borrower.fullName);
+
+			worksheet.getCell('E13').value = borrower.school;
+			worksheet.getCell('K17').value = borrower.position;
+			worksheet.getCell('L17').value = borrower.lafNumber;
+			worksheet.getCell('H23').value = Number(loan.loanAmount || 0);
+			worksheet.getCell('H24').value = Number(evaluation.existingBalance || 0);
+			worksheet.getCell('H25').value = Number(evaluation.finalLoanGranted || 0);
+			worksheet.getCell('AE36').value = Number(
+				evaluation.finalLoanGranted || 0,
+			);
+
+			workbook.worksheets.forEach((sheet) => {
+				if (sheet.name === 'TEMPLATE') {
+					workbook.removeWorksheet(sheet.id);
+				}
+			});
+
+			const buffer = await workbook.xlsx.writeBuffer();
+
+			const safeFileName = formatNameForSheet(borrower.fullName).replace(
+				/[^a-z0-9_-]/gi,
+				'_',
+			);
+
+			archive.append(Buffer.from(buffer), {
+				name: `dv-${safeFileName}.xlsx`,
+			});
+		}
+
+		await archive.finalize();
+	} catch (error: any) {
+		res.status(500).json({
+			message: 'Error exporting selected DV records',
 			error: error.message,
 		});
 	}
@@ -665,6 +822,10 @@ app.post('/applications/export/payroll/bulk', async (req, res) => {
 		}
 
 		await workbook.xlsx.readFile(templatePath);
+		console.log(
+			'Payroll sheets:',
+			workbook.worksheets.map((sheet) => sheet.name),
+		);
 
 		const worksheet = workbook.getWorksheet('TEMPLATE');
 
@@ -703,6 +864,21 @@ app.post('/applications/export/payroll/bulk', async (req, res) => {
 			row.commit();
 		});
 
+		const totalLoanGranted = applications.reduce((total, application) => {
+			return total + Number(application.evaluation?.finalLoanGranted || 0);
+		}, 0);
+
+		let totalRowNumber = 31;
+
+		worksheet.eachRow((row, rowNumber) => {
+			if (String(row.getCell('A').value).trim().toUpperCase() === 'TOTAL') {
+				totalRowNumber = rowNumber;
+			}
+		});
+
+		worksheet.getCell(`G${totalRowNumber}`).value = totalLoanGranted;
+		worksheet.getCell(`G${totalRowNumber}`).numFmt = '#,##0.00';
+
 		const safeFileName = `${firstDvNumber}_TO_${lastDvNumber}`.replace(
 			/[^a-z0-9_-]/gi,
 			'_',
@@ -727,93 +903,6 @@ app.post('/applications/export/payroll/bulk', async (req, res) => {
 		});
 	}
 });
-
-app.post(
-	'/applications/import-monitoring/debug',
-	upload.single('file'),
-	async (req, res) => {
-		if (!req.file) {
-			return res.status(400).json({ message: 'No file uploaded' });
-		}
-
-		const workbook = new ExcelJS.Workbook();
-		await workbook.xlsx.readFile(req.file.path);
-
-		const worksheet = workbook.worksheets[0];
-
-		const preview: any[] = [];
-
-		worksheet.eachRow((row, rowNumber) => {
-			if (rowNumber > 15) return;
-
-			const cells: any[] = [];
-
-			row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-				cells.push({
-					colNumber,
-					value: cell.text,
-				});
-			});
-
-			preview.push({
-				rowNumber,
-				cells,
-			});
-		});
-
-		res.json(preview);
-	},
-);
-
-app.post(
-	'/applications/import-sl/debug',
-	upload.single('file'),
-	async (req, res) => {
-		try {
-			if (!req.file) {
-				return res.status(400).json({ message: 'No file uploaded' });
-			}
-
-			const workbook = new ExcelJS.Workbook();
-			await workbook.xlsx.readFile(req.file.path);
-
-			const worksheet = workbook.worksheets[0];
-
-			if (!worksheet) {
-				return res.status(400).json({ message: 'No worksheet found' });
-			}
-
-			const preview: any[] = [];
-
-			worksheet.eachRow((row, rowNumber) => {
-				if (rowNumber > 15) return;
-
-				const cells: any[] = [];
-
-				row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-					cells.push({
-						colNumber,
-						value: cell.text,
-					});
-				});
-
-				preview.push({
-					rowNumber,
-					cells,
-				});
-			});
-
-			res.json(preview);
-		} catch (error: any) {
-			console.error('SL debug error:', error);
-
-			res.status(500).json({
-				message: 'Error reading SL file',
-				error: error.message,
-			});
-		}
-	},
-);
 
 const templateStorage = multer.diskStorage({
 	destination: (req, file, cb) => {
@@ -880,11 +969,141 @@ app.get('/templates/status', (req, res) => {
 		payroll: fs.existsSync(path.join(templateDir, 'payroll.xlsx')),
 	});
 });
-// Get saved data
-app.get('/applications', async (req, res) => {
-	const applications = await ApplicationModel.find();
 
-	res.json(applications);
+// Refund route
+app.post('/refunds', async (req, res) => {
+	try {
+		const { borrowerName, refundAmount, school, accountNumber, dvNumber } =
+			req.body;
+
+		if (!borrowerName || !refundAmount || !school || !accountNumber) {
+			return res.status(400).json({
+				message:
+					'Borrower name, refund amount, school, and account number are required',
+			});
+		}
+
+		const refundRecord = await ApplicationModel.create({
+			borrower: {
+				fullName: borrowerName,
+				employeeNumber: 'N/A',
+				school,
+				position: 'N/A',
+				code: 'N/A',
+				lafNumber: 'N/A',
+				salaryGrade: 'N/A',
+				salaryStep: 'N/A',
+			},
+
+			coMaker: {
+				name: 'N/A',
+				employeeNumber: 'N/A',
+				contactNumber: 'N/A',
+				salaryGrade: 'N/A',
+				salaryStep: 'N/A',
+			},
+
+			loan: {
+				loanAmount: String(refundAmount),
+				loanType: 'Refund',
+				accountNumber,
+				term: 'N/A',
+				purpose: 'Refund',
+			},
+
+			evaluation: {
+				netPay: 0,
+				newDeduction: 0,
+				existingDeduction: 0,
+				existingBalance: 0,
+				percentPrincipalPaid: 0,
+				netPayAfterDeduction: 0,
+				finalLoanGranted: Number(refundAmount),
+				status: 'Ready for Payroll',
+				remarks: [],
+				rejectionReasons: [],
+			},
+
+			flags: {
+				hasUndeLoan: false,
+			},
+
+			checklist: {
+				soa: false,
+				payslipReadable: false,
+				payslipOriginal: false,
+				authorizationFormComplete: false,
+				supportingDocuments: false,
+				photocopyOfId: false,
+				photocopyOfAtm: false,
+				accountNumberVerified: true,
+				loanApplicationForm: false,
+				authorizationSalaryDeduction: false,
+				latestPayslip: false,
+				approvedAppointment: false,
+				coMakerDocuments: false,
+			},
+
+			documentNumbers: {
+				dvNumber: dvNumber || '',
+			},
+
+			processing: {
+				status: 'Ready for Payroll',
+				released: false,
+			},
+		});
+
+		res.json({
+			message: 'Refund record saved successfully',
+			application: refundRecord,
+		});
+	} catch (error: any) {
+		res.status(500).json({
+			message: 'Error saving refund record',
+			error: error.message,
+		});
+	}
+});
+// Get saved data and limit the data
+app.get('/applications', async (req, res) => {
+	try {
+		const page = Number(req.query.page) || 1;
+		const limit = Number(req.query.limit) || 20;
+		const search = String(req.query.search || '');
+
+		const skip = (page - 1) * limit;
+
+		const query = search
+			? {
+					$or: [
+						{ 'borrower.fullName': { $regex: search, $options: 'i' } },
+						{ 'borrower.employeeNumber': { $regex: search, $options: 'i' } },
+						{ 'borrower.lafNumber': { $regex: search, $options: 'i' } },
+						{ 'documentNumbers.dvNumber': { $regex: search, $options: 'i' } },
+					],
+				}
+			: {};
+
+		const applications = await ApplicationModel.find(query)
+			.sort({ createdAt: -1 })
+			.skip(skip)
+			.limit(limit);
+
+		const totalApplications = await ApplicationModel.countDocuments(query);
+
+		res.json({
+			applications,
+			currentPage: page,
+			totalPages: Math.ceil(totalApplications / limit),
+			totalApplications,
+		});
+	} catch (error: any) {
+		res.status(500).json({
+			message: 'Error fetching applications',
+			error: error.message,
+		});
+	}
 });
 
 // Get all saved applications from MongoDB
@@ -924,16 +1143,17 @@ app.get('/applications/:id/export/monitoring', async (req, res) => {
 
 		await workbook.xlsx.readFile(templatePath);
 
-		const worksheet = workbook.worksheets[0];
+		const worksheet =
+			workbook.getWorksheet('MONITORING') || workbook.worksheets[0];
 
 		const newRow = worksheet.addRow([
 			new Date(),
-			loan.loanType,
-			termToYears(loan.term),
+			isRefundRecord(application) ? 'Refund' : loan.loanType,
+			isRefundRecord(application) ? '' : termToYears(loan.term),
 			borrower.position,
 			borrower.code,
 			borrower.employeeNumber,
-			evaluation.finalLoanGranted,
+			Number(evaluation.finalLoanGranted || 0),
 			evaluation.netPayAfterDeduction,
 			evaluation.existingDeduction,
 			evaluation.newDeduction,
@@ -944,8 +1164,8 @@ app.get('/applications/:id/export/monitoring', async (req, res) => {
 			coMaker.employeeNumber,
 			coMaker.contactNumber,
 			borrower.school,
-			Number(loan.loanAmount),
-			evaluation.status,
+			Number(loan.loanAmount || 0),
+			isRefundRecord(application) ? 'Refund' : evaluation.status,
 			'',
 			'',
 			'',
@@ -955,14 +1175,15 @@ app.get('/applications/:id/export/monitoring', async (req, res) => {
 			evaluation.remarks?.join(', ') || '',
 		]);
 
-		const templateRow = worksheet.getRow(2902);
+		/* const templateRow = worksheet.getRow(2902);
 
 		templateRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
 			newRow.getCell(colNumber).style = { ...cell.style };
 		});
 
-		newRow.height = templateRow.height;
+		newRow.height = templateRow.height; */
 
+		applyMonitoringRowStyle(newRow);
 		newRow.commit();
 
 		const safeFileName = borrower.fullName.replace(/[^a-z0-9]/gi, '_');
@@ -983,6 +1204,39 @@ app.get('/applications/:id/export/monitoring', async (req, res) => {
 	} catch (error: any) {
 		res.status(500).json({
 			message: 'Error exporting monitoring file',
+			error: error.message,
+		});
+	}
+});
+
+app.get('/test/payroll-template', async (req, res) => {
+	try {
+		const workbook = new ExcelJS.Workbook();
+
+		const templatePath = path.join(
+			process.cwd(),
+			'uploads',
+			'templates',
+			'payroll.xlsx',
+		);
+
+		await workbook.xlsx.readFile(templatePath);
+
+		res.setHeader(
+			'Content-Type',
+			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		);
+
+		res.setHeader(
+			'Content-Disposition',
+			'attachment; filename="payroll-template-test.xlsx"',
+		);
+
+		await workbook.xlsx.write(res);
+		res.end();
+	} catch (error: any) {
+		res.status(500).json({
+			message: 'Error testing payroll template',
 			error: error.message,
 		});
 	}
@@ -1038,7 +1292,7 @@ app.get('/debug/sl-template', async (req, res) => {
 	}
 });
 
-// Export SL File
+// Export single SL File
 app.get('/applications/:id/export/sl', async (req, res) => {
 	try {
 		const { id } = req.params;
@@ -1085,14 +1339,18 @@ app.get('/applications/:id/export/sl', async (req, res) => {
 			newRow.getCell(colNumber).style = { ...cell.style };
 		});
 
-		newRow.getCell('B').value = loan.loanType.toUpperCase();
+		newRow.getCell('B').value = isRefundRecord(application)
+			? 'REFUND'
+			: loan.loanType.toUpperCase();
 		newRow.getCell('C').value = '';
 		newRow.getCell('D').value = refNumber;
 		newRow.getCell('E').value = borrower.fullName;
-		newRow.getCell('F').value = '';
+		newRow.getCell('F').value = isRefundRecord(application) ? 'Refund' : '';
 		newRow.getCell('G').value = null;
 		newRow.getCell('H').value = Number(loan.loanAmount || 0);
-		newRow.getCell('I').value = Number(evaluation.existingBalance || 0);
+
+		newRow.getCell('I').value = 0;
+
 		newRow.getCell('J').value = Number(evaluation.finalLoanGranted || 0);
 
 		newRow.getCell('K').value = {
@@ -1109,7 +1367,9 @@ app.get('/applications/:id/export/sl', async (req, res) => {
 		newRow.getCell('W').value = borrower.school;
 		newRow.getCell('X').value = coMaker.name;
 		newRow.getCell('Y').value = coMaker.employeeNumber;
-		newRow.getCell('Z').value = loan.loanType;
+		newRow.getCell('Z').value = isRefundRecord(application)
+			? 'Refund'
+			: loan.loanType;
 		newRow.getCell('AA').value = application.soa?.checkNumber || '';
 		newRow.getCell('AB').value = application.soa?.lastMonth || '';
 		newRow.getCell('AC').value = loan.accountNumber;
@@ -1133,6 +1393,39 @@ app.get('/applications/:id/export/sl', async (req, res) => {
 	} catch (error: any) {
 		res.status(500).json({
 			message: 'Error exporting SL file',
+			error: error.message,
+		});
+	}
+});
+
+app.get('/test/monitoring-template', async (req, res) => {
+	try {
+		const workbook = new ExcelJS.Workbook();
+
+		const templatePath = path.join(
+			process.cwd(),
+			'uploads',
+			'templates',
+			'monitoring.xlsx',
+		);
+
+		await workbook.xlsx.readFile(templatePath);
+
+		res.setHeader(
+			'Content-Type',
+			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		);
+
+		res.setHeader(
+			'Content-Disposition',
+			'attachment; filename="monitoring-template-test.xlsx"',
+		);
+
+		await workbook.xlsx.write(res);
+		res.end();
+	} catch (error: any) {
+		res.status(500).json({
+			message: 'Error testing monitoring template',
 			error: error.message,
 		});
 	}
