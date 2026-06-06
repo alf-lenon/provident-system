@@ -639,8 +639,7 @@ app.post('/applications/export/sl/bulk', async (req, res) => {
 			newRow.getCell('F').value = isRefundRecord(application) ? 'Refund' : '';
 			newRow.getCell('G').value = null;
 			newRow.getCell('H').value = Number(loan.loanAmount || 0);
-			newRow.getCell('I').value = 0;
-
+			newRow.getCell('I').value = Number(evaluation.existingBalance || 0);
 			newRow.getCell('J').value = Number(evaluation.finalLoanGranted || 0);
 
 			newRow.getCell('K').value = {
@@ -1348,9 +1347,7 @@ app.get('/applications/:id/export/sl', async (req, res) => {
 		newRow.getCell('F').value = isRefundRecord(application) ? 'Refund' : '';
 		newRow.getCell('G').value = null;
 		newRow.getCell('H').value = Number(loan.loanAmount || 0);
-
-		newRow.getCell('I').value = 0;
-
+		newRow.getCell('I').value = Number(evaluation.existingBalance || 0);
 		newRow.getCell('J').value = Number(evaluation.finalLoanGranted || 0);
 
 		newRow.getCell('K').value = {

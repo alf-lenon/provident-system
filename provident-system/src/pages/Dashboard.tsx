@@ -69,6 +69,10 @@ type Application = {
 		released: boolean;
 		dateReleased?: string;
 	};
+
+	documentNumbers: {
+		dvNumber: string;
+	};
 };
 function Dashboard() {
 	const [applications, setApplications] = useState<Application[]>([]);
@@ -945,6 +949,9 @@ function Dashboard() {
 
 									<p>Code: {selectedApplication.borrower.code}</p>
 									<p>LAF No: {selectedApplication.borrower.lafNumber}</p>
+									<p>
+										DV Number: {selectedApplication.documentNumbers.dvNumber}
+									</p>
 									<p>
 										Salary Grade: {selectedApplication.borrower.salaryGrade}
 									</p>
