@@ -97,6 +97,8 @@ function Dashboard() {
 
 	const [showRefundModal, setShowRefundModal] = useState(false);
 
+	const [openActionId, setOpenActionId] = useState<string | null>(null);
+
 	const cardClass = 'bg-white/90 border border-gray-200 rounded-2xl shadow-sm';
 
 	const inputClass =
@@ -888,104 +890,140 @@ function Dashboard() {
 											</td>
 
 											<td className='px-6 py-4 text-center'>
-												<div className='flex justify-center gap-2'>
+												<div className='relative flex justify-center gap-2'>
 													<button
 														onClick={() => setSelectedApplication(app)}
-														className='bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition'
+														className='rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition'
 													>
 														View
 													</button>
 
 													<button
-														onClick={() => setEditingApplication(app)}
-														className='bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition'
+														onClick={() =>
+															setOpenActionId(
+																openActionId === app._id ? null : app._id,
+															)
+														}
+														className='rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition'
 													>
-														Edit
+														More
 													</button>
 
-													<button
-														onClick={() => handleDelete(app._id)}
-														className='bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition'
-													>
-														Delete
-													</button>
+													{openActionId === app._id && (
+														<div className='absolute right-0 top-11 z-20 w-48 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg'>
+															<button
+																onClick={() => {
+																	setEditingApplication(app);
+																	setOpenActionId(null);
+																}}
+																className='w-full rounded-xl px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100'
+															>
+																Edit
+															</button>
 
-													{app.processing?.status === 'Processed' ? (
-														<button
-															onClick={() => handleUndoProcessed(app._id)}
-															className='bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition'
-														>
-															Undo Process
-														</button>
-													) : (
-														<button
-															onClick={() => handleMarkAsProcessed(app._id)}
-															disabled={!canProcess(app)}
-															className={
-																!canProcess(app)
-																	? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed'
-																	: 'bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition'
-															}
-														>
-															Process
-														</button>
+															<button
+																onClick={() => {
+																	handleDelete(app._id);
+																	setOpenActionId(null);
+																}}
+																className='w-full rounded-xl px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50'
+															>
+																Delete
+															</button>
+
+															{app.processing?.status === 'Processed' ? (
+																<button
+																	onClick={() => {
+																		handleUndoProcessed(app._id);
+																		setOpenActionId(null);
+																	}}
+																	className='w-full rounded-xl px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100'
+																>
+																	Undo Process
+																</button>
+															) : (
+																<button
+																	onClick={() => {
+																		handleMarkAsProcessed(app._id);
+																		setOpenActionId(null);
+																	}}
+																	disabled={!canProcess(app)}
+																	className={
+																		!canProcess(app)
+																			? 'w-full rounded-xl px-3 py-2 text-left text-sm text-gray-400 cursor-not-allowed'
+																			: 'w-full rounded-xl px-3 py-2 text-left text-sm text-green-700 hover:bg-green-50'
+																	}
+																>
+																	Process
+																</button>
+															)}
+
+															{app.processing?.released ? (
+																<button
+																	onClick={() => {
+																		handleUndoRelease(app._id);
+																		setOpenActionId(null);
+																	}}
+																	className='w-full rounded-xl px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100'
+																>
+																	Undo Release
+																</button>
+															) : (
+																<button
+																	onClick={() => {
+																		handleRelease(app._id);
+																		setOpenActionId(null);
+																	}}
+																	disabled={!canRelease(app)}
+																	className={
+																		!canRelease(app)
+																			? 'w-full rounded-xl px-3 py-2 text-left text-sm text-gray-400 cursor-not-allowed'
+																			: 'w-full rounded-xl px-3 py-2 text-left text-sm text-purple-700 hover:bg-purple-50'
+																	}
+																>
+																	Release
+																</button>
+															)}
+
+															<div className='my-1 border-t border-gray-100' />
+
+															<button
+																onClick={() =>
+																	window.open(
+																		`http://localhost:5000/applications/${app._id}/export/monitoring`,
+																		'_blank',
+																	)
+																}
+																className='w-full rounded-xl px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100'
+															>
+																Export Monitoring
+															</button>
+
+															<button
+																onClick={() =>
+																	window.open(
+																		`http://localhost:5000/applications/${app._id}/export/sl`,
+																		'_blank',
+																	)
+																}
+																className='w-full rounded-xl px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100'
+															>
+																Export SL
+															</button>
+
+															<button
+																onClick={() =>
+																	window.open(
+																		`http://localhost:5000/applications/${app._id}/export/dv`,
+																		'_blank',
+																	)
+																}
+																className='w-full rounded-xl px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100'
+															>
+																Export DV
+															</button>
+														</div>
 													)}
-
-													{app.processing?.released ? (
-														<button
-															onClick={() => handleUndoRelease(app._id)}
-															className='bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition'
-														>
-															Undo Release
-														</button>
-													) : (
-														<button
-															onClick={() => handleRelease(app._id)}
-															disabled={!canRelease(app)}
-															className={
-																!canRelease(app)
-																	? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed'
-																	: 'bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition'
-															}
-														>
-															Release
-														</button>
-													)}
-
-													<select
-														defaultValue=''
-														onChange={(e) => {
-															const url = e.target.value;
-
-															if (!url) return;
-
-															window.open(url, '_blank');
-															e.target.value = '';
-														}}
-														className='border border-gray-300 text-sm px-3 py-2 rounded-lg bg-white hover:bg-gray-50 transition'
-													>
-														<option value='' disabled>
-															Export...
-														</option>
-
-														<option
-															value={`http://localhost:5000/applications/${app._id}/export/monitoring`}
-														>
-															Monitoring
-														</option>
-
-														<option
-															value={`http://localhost:5000/applications/${app._id}/export/sl`}
-														>
-															SL
-														</option>
-
-														<option
-															value={`http://localhost:5000/applications/${app._id}/export/dv`}
-														>
-															DV
-														</option>
-													</select>
 												</div>
 											</td>
 										</tr>
