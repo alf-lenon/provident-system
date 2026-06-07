@@ -97,6 +97,14 @@ function Dashboard() {
 
 	const [showRefundModal, setShowRefundModal] = useState(false);
 
+	const cardClass = 'bg-white/90 border border-gray-200 rounded-2xl shadow-sm';
+
+	const inputClass =
+		'w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400';
+
+	const primaryButtonClass =
+		'px-4 py-2.5 rounded-full bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition';
+
 	// Delete request to backend
 	const handleDelete = async (id: string) => {
 		const confirmDelete = window.confirm(
@@ -315,9 +323,15 @@ function Dashboard() {
 	};
 
 	return (
-		<main className='min-h-screen bg-gray-100 flex'>
+		<main className='min-h-screen bg-[#F5F5F7] flex flex-col md:flex-row'>
+			{/* Mobile Header */}
+			<div className='md:hidden bg-white border-b border-gray-200 p-4'>
+				<h2 className='text-lg font-bold text-blue-700'>Provident System</h2>
+				<p className='text-sm text-gray-500'>Applications Dashboard</p>
+			</div>
+
 			{/* Sidebar */}
-			<aside className='w-64 bg-white border-r border-gray-200 p-5 hidden md:block'>
+			<aside className='w-64 bg-white/80 backdrop-blur border-r border-gray-200 p-5 hidden md:block'>
 				<h2 className='text-xl font-bold text-blue-700 mb-8'>
 					Provident System
 				</h2>
@@ -336,7 +350,7 @@ function Dashboard() {
 			</aside>
 
 			{/* Main Content */}
-			<section className='flex-1 p-6'>
+			<section className='flex-1 w-full p-4 sm:p-6 overflow-hidden'>
 				{/* Header */}
 				<header className='mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
 					<div>
@@ -347,29 +361,28 @@ function Dashboard() {
 							Review and monitor provident loan applications
 						</p>
 					</div>
+					<div className='flex flex-col sm:flex-row gap-2 w-full md:w-auto'>
+						<button className={primaryButtonClass}>New Application</button>
 
-					<button className='bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition'>
-						New Application
-					</button>
-
-					<button
-						onClick={() => setShowRefundModal(true)}
-						className='px-4 py-2 bg-orange-600 text-white rounded-lg'
-					>
-						+ New Refund
-					</button>
+						<button
+							onClick={() => setShowRefundModal(true)}
+							className='px-4 py-2.5 rounded-full bg-orange-500 text-white text-sm font-medium hover:bg-orange-600 transition'
+						>
+							+ New Refund
+						</button>
+					</div>
 				</header>
 
 				{/* Stats Cards */}
 				<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>
-					<div className='bg-white p-5 rounded-xl shadow'>
+					<div className={`${cardClass} p-5`}>
 						<p className='text-sm text-gray-500'>Total Applications</p>
 						<h3 className='text-2xl font-bold text-gray-800'>
 							{totalApplications}
 						</h3>
 					</div>
 
-					<div className='bg-white p-5 rounded-xl shadow'>
+					<div className={`${cardClass} p-5`}>
 						<p className='text-sm text-gray-500'>Ready</p>
 						<h3 className='text-2xl font-bold text-green-600'>
 							{
@@ -380,7 +393,7 @@ function Dashboard() {
 						</h3>
 					</div>
 
-					<div className='bg-white p-5 rounded-xl shadow'>
+					<div className={`${cardClass} p-5`}>
 						<p className='text-sm text-gray-500'>Needs Correction</p>
 						<h3 className='text-2xl font-bold text-yellow-600'>
 							{
@@ -391,7 +404,7 @@ function Dashboard() {
 						</h3>
 					</div>
 
-					<div className='bg-white p-5 rounded-xl shadow'>
+					<div className={`${cardClass} p-5`}>
 						<p className='text-sm text-gray-500'>Rejected</p>
 						<h3 className='text-2xl font-bold text-red-600'>
 							{
@@ -404,7 +417,7 @@ function Dashboard() {
 				</div>
 
 				{/* Application Cards */}
-				<div className='bg-white rounded-xl shadow p-5'>
+				<div className={`${cardClass} p-4 sm:p-5 overflow-hidden`}>
 					<div className='flex justify-between items-center mb-4'>
 						<h2 className='text-lg font-semibold text-gray-800'>
 							Recent Applications
@@ -415,13 +428,13 @@ function Dashboard() {
 						<input
 							type='text'
 							placeholder='Search by borrower name...'
-							className='border border-gray-300 rounded-lg px-4 py-2 w-full md:max-w-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+							className={inputClass}
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
 						/>
 
 						<select
-							className='border border-gray-300 rounded-lg px-4 py-2 w-full md:w-56 focus:outline-none focus:ring-2 focus:ring-blue-500'
+							className={`${inputClass} md:w-56`}
 							value={statusFilter}
 							onChange={(e) => setStatusFilter(e.target.value)}
 						>
@@ -432,7 +445,7 @@ function Dashboard() {
 						</select>
 					</div>
 
-					<div className='overflow-x-auto'>
+					<div className='w-full overflow-x-auto'>
 						{isLoading && (
 							<p className='text-sm text-gray-500 mb-4'>
 								Loading applications...
@@ -440,413 +453,552 @@ function Dashboard() {
 						)}
 
 						{error && <p className='text-sm text-red-600 mb-4'>{error}</p>}
-						<button
-							disabled={selectedIds.length === 0}
-							onClick={async () => {
-								const response = await fetch(
-									'http://localhost:5000/applications/export/monitoring/bulk',
-									{
-										method: 'POST',
-										headers: {
-											'Content-Type': 'application/json',
+
+						<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 mb-4'>
+							<button
+								disabled={selectedIds.length === 0}
+								onClick={async () => {
+									const response = await fetch(
+										'http://localhost:5000/applications/export/monitoring/bulk',
+										{
+											method: 'POST',
+											headers: {
+												'Content-Type': 'application/json',
+											},
+											body: JSON.stringify({ ids: selectedIds }),
 										},
-										body: JSON.stringify({ ids: selectedIds }),
-									},
-								);
+									);
 
-								const blob = await response.blob();
-								const url = window.URL.createObjectURL(blob);
+									const blob = await response.blob();
+									const url = window.URL.createObjectURL(blob);
 
-								const link = document.createElement('a');
-								link.href = url;
-								link.download = 'provident-monitoring-selected.xlsx';
-								link.click();
+									const link = document.createElement('a');
+									link.href = url;
+									link.download = 'provident-monitoring-selected.xlsx';
+									link.click();
 
-								window.URL.revokeObjectURL(url);
-							}}
-							className={
-								selectedIds.length === 0
-									? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed'
-									: 'bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition'
-							}
-						>
-							Export Selected Monitoring ({selectedIds.length})
-						</button>
+									window.URL.revokeObjectURL(url);
+								}}
+								className={
+									selectedIds.length === 0
+										? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed w-full'
+										: 'bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition w-full'
+								}
+							>
+								Export Selected Monitoring ({selectedIds.length})
+							</button>
 
-						<button
-							disabled={selectedIds.length === 0}
-							onClick={async () => {
-								const response = await fetch(
-									'http://localhost:5000/applications/export/sl/bulk',
-									{
-										method: 'POST',
-										headers: {
-											'Content-Type': 'application/json',
+							<button
+								disabled={selectedIds.length === 0}
+								onClick={async () => {
+									const response = await fetch(
+										'http://localhost:5000/applications/export/sl/bulk',
+										{
+											method: 'POST',
+											headers: {
+												'Content-Type': 'application/json',
+											},
+											body: JSON.stringify({ ids: selectedIds }),
 										},
-										body: JSON.stringify({ ids: selectedIds }),
-									},
-								);
+									);
 
-								const blob = await response.blob();
-								const url = window.URL.createObjectURL(blob);
+									const blob = await response.blob();
+									const url = window.URL.createObjectURL(blob);
 
-								const link = document.createElement('a');
-								link.href = url;
-								link.download = 'sl-selected.xlsx';
-								link.click();
+									const link = document.createElement('a');
+									link.href = url;
+									link.download = 'sl-selected.xlsx';
+									link.click();
 
-								window.URL.revokeObjectURL(url);
-							}}
-							className={
-								selectedIds.length === 0
-									? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed'
-									: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition'
-							}
-						>
-							Export Selected SL ({selectedIds.length})
-						</button>
+									window.URL.revokeObjectURL(url);
+								}}
+								className={
+									selectedIds.length === 0
+										? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed w-full'
+										: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition w-full'
+								}
+							>
+								Export Selected SL ({selectedIds.length})
+							</button>
 
-						<button
-							disabled={selectedIds.length === 0}
-							onClick={async () => {
-								const response = await fetch(
-									'http://localhost:5000/applications/export/dv/bulk',
-									{
-										method: 'POST',
-										headers: {
-											'Content-Type': 'application/json',
+							<button
+								disabled={selectedIds.length === 0}
+								onClick={async () => {
+									const response = await fetch(
+										'http://localhost:5000/applications/export/dv/bulk',
+										{
+											method: 'POST',
+											headers: {
+												'Content-Type': 'application/json',
+											},
+											body: JSON.stringify({ ids: selectedIds }),
 										},
-										body: JSON.stringify({ ids: selectedIds }),
-									},
-								);
+									);
 
-								const blob = await response.blob();
+									const blob = await response.blob();
 
-								const url = window.URL.createObjectURL(blob);
+									const url = window.URL.createObjectURL(blob);
 
-								const link = document.createElement('a');
-								link.href = url;
-								link.download = 'dv-selected.zip';
-								link.click();
+									const link = document.createElement('a');
+									link.href = url;
+									link.download = 'dv-selected.zip';
+									link.click();
 
-								window.URL.revokeObjectURL(url);
+									window.URL.revokeObjectURL(url);
+								}}
+								className={
+									selectedIds.length === 0
+										? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed w-full'
+										: 'bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition w-full'
+								}
+							>
+								Export Selected DV ({selectedIds.length})
+							</button>
 
-								window.URL.revokeObjectURL(url);
-							}}
-							className={
-								selectedIds.length === 0
-									? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed'
-									: 'bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition'
-							}
-						>
-							Export Selected DV ({selectedIds.length})
-						</button>
-
-						<button
-							disabled={selectedIds.length === 0}
-							onClick={async () => {
-								const response = await fetch(
-									'http://localhost:5000/applications/export/payroll/bulk',
-									{
-										method: 'POST',
-										headers: {
-											'Content-Type': 'application/json',
+							<button
+								disabled={selectedIds.length === 0}
+								onClick={async () => {
+									const response = await fetch(
+										'http://localhost:5000/applications/export/payroll/bulk',
+										{
+											method: 'POST',
+											headers: {
+												'Content-Type': 'application/json',
+											},
+											body: JSON.stringify({ ids: selectedIds }),
 										},
-										body: JSON.stringify({ ids: selectedIds }),
-									},
-								);
+									);
 
-								const blob = await response.blob();
-								const url = window.URL.createObjectURL(blob);
+									const blob = await response.blob();
+									const url = window.URL.createObjectURL(blob);
 
-								const link = document.createElement('a');
-								link.href = url;
-								link.download = 'payroll.xlsx';
-								link.click();
+									const link = document.createElement('a');
+									link.href = url;
+									link.download = 'payroll.xlsx';
+									link.click();
 
-								window.URL.revokeObjectURL(url);
-							}}
-							className={
-								selectedIds.length === 0
-									? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed'
-									: 'bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition'
-							}
-						>
-							Export Selected Payroll ({selectedIds.length})
-						</button>
+									window.URL.revokeObjectURL(url);
+								}}
+								className={
+									selectedIds.length === 0
+										? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed w-full'
+										: 'bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition w-full'
+								}
+							>
+								Export Selected Payroll ({selectedIds.length})
+							</button>
 
-						<button
-							disabled={selectedIds.length === 0}
-							onClick={() => setSelectedIds([])}
-							className={
-								selectedIds.length === 0
-									? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed'
-									: 'bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition'
-							}
-						>
-							Clear Selected
-						</button>
+							<button
+								disabled={selectedIds.length === 0}
+								onClick={() => setSelectedIds([])}
+								className={
+									selectedIds.length === 0
+										? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed w-full'
+										: 'bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition w-full'
+								}
+							>
+								Clear Selected
+							</button>
+						</div>
 
-						<table className='min-w-full divide-y divide-gray-200'>
-							<thead className='bg-gray-50'>
-								<tr>
-									<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
-										Select
-									</th>
+						<div className='md:hidden space-y-3'>
+							{filteredApplications.length === 0 && (
+								<div className='rounded-2xl border border-gray-200 bg-white p-5 text-center text-sm text-gray-500'>
+									No applications found.
+								</div>
+							)}
 
-									<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
-										Borrower
-									</th>
+							{filteredApplications.map((app) => (
+								<div
+									key={app._id}
+									className='rounded-2xl border border-gray-200 bg-white p-4 shadow-sm'
+								>
+									<div className='flex items-start justify-between gap-3'>
+										<div>
+											<p className='font-semibold text-gray-900'>
+												{app.borrower.fullName}
+											</p>
+											<p className='text-sm text-gray-500'>
+												{app.loan.loanType} • ₱
+												{Number(app.loan.loanAmount).toLocaleString('en-PH')}
+											</p>
+										</div>
 
-									<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
-										Loan Type
-									</th>
+										<input
+											type='checkbox'
+											checked={selectedIds.includes(app._id)}
+											onChange={() => handleSelectApplication(app._id)}
+											className='mt-1'
+										/>
+									</div>
 
-									<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
-										Loan Amount
-									</th>
-
-									<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
-										Date Submitted
-									</th>
-
-									<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
-										Status
-									</th>
-
-									<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
-										Processing
-									</th>
-
-									<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
-										Release
-									</th>
-
-									<th className='px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase'>
-										Actions
-									</th>
-								</tr>
-							</thead>
-
-							<tbody className='bg-white divide-y divide-gray-100'>
-								{filteredApplications.length === 0 && (
-									<tr>
-										<td
-											colSpan={9}
-											className='px-6 py-8 text-center text-gray-500'
+									<div className='mt-3 flex flex-wrap gap-2'>
+										<span
+											className={
+												app.evaluation.status === 'Ready for Processing'
+													? 'bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium'
+													: app.evaluation.status === 'Needs Correction'
+														? 'bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium'
+														: 'bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-medium'
+											}
 										>
-											No applications found.
-										</td>
+											{app.evaluation.status}
+										</span>
+
+										<span
+											className={
+												app.processing?.status === 'Processed'
+													? 'bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium'
+													: 'bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-medium'
+											}
+										>
+											{app.processing?.status || 'Pending'}
+										</span>
+
+										<span
+											className={
+												app.processing?.released
+													? 'bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-medium'
+													: 'bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-medium'
+											}
+										>
+											{app.processing?.released ? 'Released' : 'Not Released'}
+										</span>
+									</div>
+
+									<p className='mt-3 text-xs text-gray-500'>
+										Submitted:{' '}
+										{new Date(app.createdAt).toLocaleDateString('en-PH', {
+											year: 'numeric',
+											month: 'short',
+											day: 'numeric',
+										})}
+									</p>
+
+									<div className='mt-4 grid grid-cols-2 gap-2'>
+										<button
+											onClick={() => setSelectedApplication(app)}
+											className='rounded-full bg-blue-600 px-3 py-2 text-sm font-medium text-white'
+										>
+											View
+										</button>
+
+										<button
+											onClick={() => setEditingApplication(app)}
+											className='rounded-full bg-yellow-500 px-3 py-2 text-sm font-medium text-white'
+										>
+											Edit
+										</button>
+
+										<button
+											onClick={() => handleDelete(app._id)}
+											className='rounded-full bg-red-600 px-3 py-2 text-sm font-medium text-white'
+										>
+											Delete
+										</button>
+
+										<select
+											defaultValue=''
+											onChange={(e) => {
+												const url = e.target.value;
+												if (!url) return;
+
+												window.open(url, '_blank');
+												e.target.value = '';
+											}}
+											className='rounded-full border border-gray-200 bg-white px-3 py-2 text-sm'
+										>
+											<option value='' disabled>
+												Export
+											</option>
+											<option
+												value={`http://localhost:5000/applications/${app._id}/export/monitoring`}
+											>
+												Monitoring
+											</option>
+											<option
+												value={`http://localhost:5000/applications/${app._id}/export/sl`}
+											>
+												SL
+											</option>
+											<option
+												value={`http://localhost:5000/applications/${app._id}/export/dv`}
+											>
+												DV
+											</option>
+										</select>
+									</div>
+								</div>
+							))}
+						</div>
+
+						<div className='hidden md:block w-full overflow-x-auto'>
+							<table className='min-w-full divide-y divide-gray-200'>
+								<thead className='bg-gray-50/80'>
+									<tr>
+										<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
+											Select
+										</th>
+
+										<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
+											Borrower
+										</th>
+
+										<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
+											Loan Type
+										</th>
+
+										<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
+											Loan Amount
+										</th>
+
+										<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
+											Date Submitted
+										</th>
+
+										<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
+											Status
+										</th>
+
+										<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
+											Processing
+										</th>
+
+										<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
+											Release
+										</th>
+
+										<th className='px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase'>
+											Actions
+										</th>
 									</tr>
-								)}
+								</thead>
 
-								{filteredApplications.map((app) => (
-									<tr key={app._id} className='hover:bg-gray-50 transition'>
-										<td className='px-6 py-4'>
-											<input
-												type='checkbox'
-												checked={selectedIds.includes(app._id)}
-												onChange={() => handleSelectApplication(app._id)}
-											/>
-										</td>
-
-										<td className='px-6 py-4'>
-											<div>
-												<p className='font-semibold text-gray-800'>
-													{app.borrower.fullName}
-												</p>
-											</div>
-										</td>
-
-										<td className='px-6 py-4'>
-											{app.loan.loanType === 'Refund' ? (
-												<span className='bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-medium'>
-													Refund
-												</span>
-											) : (
-												<span className='text-gray-700'>
-													{app.loan.loanType}
-												</span>
-											)}
-										</td>
-
-										<td className='px-6 py-4 text-gray-700'>
-											₱{Number(app.loan.loanAmount).toLocaleString('en-PH')}
-										</td>
-
-										<td className='px-6 py-4 text-gray-700'>
-											{new Date(app.createdAt).toLocaleDateString('en-PH', {
-												year: 'numeric',
-												month: 'short',
-												day: 'numeric',
-											})}
-										</td>
-
-										<td className='px-6 py-4'>
-											<span
-												className={
-													app.evaluation.status === 'Ready for Processing'
-														? 'bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium'
-														: app.evaluation.status === 'Needs Correction'
-															? 'bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium'
-															: 'bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-medium'
-												}
+								<tbody className='bg-white divide-y divide-gray-100'>
+									{filteredApplications.length === 0 && (
+										<tr>
+											<td
+												colSpan={9}
+												className='px-6 py-8 text-center text-gray-500'
 											>
-												{app.evaluation.status}
-											</span>
-										</td>
+												No applications found.
+											</td>
+										</tr>
+									)}
 
-										<td className='px-6 py-4'>
-											<span
-												className={
-													app.processing?.status === 'Processed'
-														? 'bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium'
-														: 'bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-medium'
-												}
-											>
-												{app.processing?.status || 'Pending'}
-											</span>
+									{filteredApplications.map((app) => (
+										<tr
+											key={app._id}
+											className='hover:bg-gray-50/80 transition'
+										>
+											<td className='px-6 py-4'>
+												<input
+													type='checkbox'
+													checked={selectedIds.includes(app._id)}
+													onChange={() => handleSelectApplication(app._id)}
+												/>
+											</td>
 
-											{app.processing?.dateProcessed && (
-												<p className='text-xs text-gray-500 mt-1'>
-													{new Date(
-														app.processing.dateProcessed,
-													).toLocaleDateString('en-PH')}
-												</p>
-											)}
-										</td>
+											<td className='px-6 py-4'>
+												<div>
+													<p className='font-semibold text-gray-800'>
+														{app.borrower.fullName}
+													</p>
+												</div>
+											</td>
 
-										<td className='px-6 py-4'>
-											<span
-												className={
-													app.processing?.released
-														? 'bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-medium'
-														: 'bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-medium'
-												}
-											>
-												{app.processing?.released ? 'Released' : 'Not Released'}
-											</span>
-
-											{app.processing?.dateReleased && (
-												<p className='text-xs text-gray-500 mt-1'>
-													{new Date(
-														app.processing.dateReleased,
-													).toLocaleDateString('en-PH')}
-												</p>
-											)}
-										</td>
-
-										<td className='px-6 py-4 text-center'>
-											<div className='flex justify-center gap-2'>
-												<button
-													onClick={() => setSelectedApplication(app)}
-													className='bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition'
-												>
-													View
-												</button>
-
-												<button
-													onClick={() => setEditingApplication(app)}
-													className='bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition'
-												>
-													Edit
-												</button>
-
-												<button
-													onClick={() => handleDelete(app._id)}
-													className='bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition'
-												>
-													Delete
-												</button>
-
-												{app.processing?.status === 'Processed' ? (
-													<button
-														onClick={() => handleUndoProcessed(app._id)}
-														className='bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition'
-													>
-														Undo Process
-													</button>
+											<td className='px-6 py-4'>
+												{app.loan.loanType === 'Refund' ? (
+													<span className='bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-medium'>
+														Refund
+													</span>
 												) : (
-													<button
-														onClick={() => handleMarkAsProcessed(app._id)}
-														disabled={!canProcess(app)}
-														className={
-															!canProcess(app)
-																? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed'
-																: 'bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition'
-														}
-													>
-														Process
-													</button>
+													<span className='text-gray-700'>
+														{app.loan.loanType}
+													</span>
 												)}
+											</td>
 
-												{app.processing?.released ? (
-													<button
-														onClick={() => handleUndoRelease(app._id)}
-														className='bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition'
-													>
-														Undo Release
-													</button>
-												) : (
-													<button
-														onClick={() => handleRelease(app._id)}
-														disabled={!canRelease(app)}
-														className={
-															!canRelease(app)
-																? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed'
-																: 'bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition'
-														}
-													>
-														Release
-													</button>
-												)}
+											<td className='px-6 py-4 text-gray-700'>
+												₱{Number(app.loan.loanAmount).toLocaleString('en-PH')}
+											</td>
 
-												<select
-													defaultValue=''
-													onChange={(e) => {
-														const url = e.target.value;
+											<td className='px-6 py-4 text-gray-700'>
+												{new Date(app.createdAt).toLocaleDateString('en-PH', {
+													year: 'numeric',
+													month: 'short',
+													day: 'numeric',
+												})}
+											</td>
 
-														if (!url) return;
-
-														window.open(url, '_blank');
-														e.target.value = '';
-													}}
-													className='border border-gray-300 text-sm px-3 py-2 rounded-lg bg-white hover:bg-gray-50 transition'
+											<td className='px-6 py-4'>
+												<span
+													className={
+														app.evaluation.status === 'Ready for Processing'
+															? 'bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium'
+															: app.evaluation.status === 'Needs Correction'
+																? 'bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium'
+																: 'bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-medium'
+													}
 												>
-													<option value='' disabled>
-														Export...
-													</option>
+													{app.evaluation.status}
+												</span>
+											</td>
 
-													<option
-														value={`http://localhost:5000/applications/${app._id}/export/monitoring`}
-													>
-														Monitoring
-													</option>
+											<td className='px-6 py-4'>
+												<span
+													className={
+														app.processing?.status === 'Processed'
+															? 'bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium'
+															: 'bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-medium'
+													}
+												>
+													{app.processing?.status || 'Pending'}
+												</span>
 
-													<option
-														value={`http://localhost:5000/applications/${app._id}/export/sl`}
-													>
-														SL
-													</option>
+												{app.processing?.dateProcessed && (
+													<p className='text-xs text-gray-500 mt-1'>
+														{new Date(
+															app.processing.dateProcessed,
+														).toLocaleDateString('en-PH')}
+													</p>
+												)}
+											</td>
 
-													<option
-														value={`http://localhost:5000/applications/${app._id}/export/dv`}
+											<td className='px-6 py-4'>
+												<span
+													className={
+														app.processing?.released
+															? 'bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-medium'
+															: 'bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-medium'
+													}
+												>
+													{app.processing?.released
+														? 'Released'
+														: 'Not Released'}
+												</span>
+
+												{app.processing?.dateReleased && (
+													<p className='text-xs text-gray-500 mt-1'>
+														{new Date(
+															app.processing.dateReleased,
+														).toLocaleDateString('en-PH')}
+													</p>
+												)}
+											</td>
+
+											<td className='px-6 py-4 text-center'>
+												<div className='flex justify-center gap-2'>
+													<button
+														onClick={() => setSelectedApplication(app)}
+														className='bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition'
 													>
-														DV
-													</option>
-												</select>
-											</div>
-										</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
+														View
+													</button>
+
+													<button
+														onClick={() => setEditingApplication(app)}
+														className='bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition'
+													>
+														Edit
+													</button>
+
+													<button
+														onClick={() => handleDelete(app._id)}
+														className='bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition'
+													>
+														Delete
+													</button>
+
+													{app.processing?.status === 'Processed' ? (
+														<button
+															onClick={() => handleUndoProcessed(app._id)}
+															className='bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition'
+														>
+															Undo Process
+														</button>
+													) : (
+														<button
+															onClick={() => handleMarkAsProcessed(app._id)}
+															disabled={!canProcess(app)}
+															className={
+																!canProcess(app)
+																	? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed'
+																	: 'bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition'
+															}
+														>
+															Process
+														</button>
+													)}
+
+													{app.processing?.released ? (
+														<button
+															onClick={() => handleUndoRelease(app._id)}
+															className='bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition'
+														>
+															Undo Release
+														</button>
+													) : (
+														<button
+															onClick={() => handleRelease(app._id)}
+															disabled={!canRelease(app)}
+															className={
+																!canRelease(app)
+																	? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed'
+																	: 'bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition'
+															}
+														>
+															Release
+														</button>
+													)}
+
+													<select
+														defaultValue=''
+														onChange={(e) => {
+															const url = e.target.value;
+
+															if (!url) return;
+
+															window.open(url, '_blank');
+															e.target.value = '';
+														}}
+														className='border border-gray-300 text-sm px-3 py-2 rounded-lg bg-white hover:bg-gray-50 transition'
+													>
+														<option value='' disabled>
+															Export...
+														</option>
+
+														<option
+															value={`http://localhost:5000/applications/${app._id}/export/monitoring`}
+														>
+															Monitoring
+														</option>
+
+														<option
+															value={`http://localhost:5000/applications/${app._id}/export/sl`}
+														>
+															SL
+														</option>
+
+														<option
+															value={`http://localhost:5000/applications/${app._id}/export/dv`}
+														>
+															DV
+														</option>
+													</select>
+												</div>
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
 
 						<div className='flex items-center justify-between mt-4'>
 							<button
 								disabled={currentPage === 1}
 								onClick={() => setCurrentPage((prev) => prev - 1)}
-								className='px-4 py-2 border rounded-lg disabled:opacity-50'
+								className='px-4 py-2 rounded-full border border-gray-200 bg-white text-sm disabled:opacity-50 hover:bg-gray-50 transition'
 							>
 								Previous
 							</button>
@@ -858,7 +1010,7 @@ function Dashboard() {
 							<button
 								disabled={currentPage === totalPages}
 								onClick={() => setCurrentPage((prev) => prev + 1)}
-								className='px-4 py-2 border rounded-lg disabled:opacity-50'
+								className='px-4 py-2 rounded-full border border-gray-200 bg-white text-sm disabled:opacity-50 hover:bg-gray-50 transition'
 							>
 								Next
 							</button>
@@ -903,6 +1055,18 @@ function Dashboard() {
 										<p className='text-xl font-bold text-gray-800 mt-2'>
 											₱
 											{selectedApplication.evaluation.netPayAfterDeduction.toLocaleString(
+												'en-PH',
+											)}
+										</p>
+									</div>
+
+									{/* Existing Balance */}
+									<div className='bg-white border rounded-xl p-4 shadow-sm'>
+										<p className='text-sm text-gray-500'>Existing Balance</p>
+
+										<p className='text-xl font-bold text-gray-800 mt-2'>
+											₱
+											{selectedApplication.evaluation.existingBalance.toLocaleString(
 												'en-PH',
 											)}
 										</p>

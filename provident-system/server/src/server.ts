@@ -743,8 +743,9 @@ app.post('/applications/export/dv/bulk', async (req, res) => {
 
 			worksheet.name = formatNameForSheet(borrower.fullName).slice(0, 31);
 
-			worksheet.getCell('AD6').value =
-				application.documentNumbers?.dvNumber || '';
+			worksheet.getCell('AD6').value = `DV No. : ${
+				application.documentNumbers?.dvNumber || ''
+			}`;
 
 			worksheet.getCell('E11').value = formatNameForPayee(borrower.fullName);
 
@@ -1473,7 +1474,7 @@ app.get('/applications/:id/export/dv', async (req, res) => {
 		const sheetName = formatNameForSheet(borrower.fullName).slice(0, 31);
 		worksheet.name = sheetName;
 
-		worksheet.getCell('AD6').value = refNumber;
+		worksheet.getCell('AD6').value = `DV No. : ${refNumber}`;
 		worksheet.getCell('E11').value = formatNameForPayee(borrower.fullName);
 		worksheet.getCell('E13').value = borrower.school;
 		worksheet.getCell('K17').value = borrower.position;
