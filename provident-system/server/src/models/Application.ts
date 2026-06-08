@@ -59,7 +59,12 @@ const applicationSchema = new mongoose.Schema(
 		},
 
 		documentNumbers: {
-			dvNumber: String,
+			dvNumber: {
+				type: String,
+				trim: true,
+				unique: true,
+				sparse: true,
+			},
 		},
 
 		evaluation: {

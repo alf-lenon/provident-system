@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type FormData = {
 	// TypeScript
@@ -153,6 +153,34 @@ function NewApplication() {
 	const [successMessage, setSuccessMessage] = useState('');
 	const [errorMessage, setErrorMessage] = useState('');
 	const [isSubmitting, setIsSubmitting] = useState(false);
+
+	useEffect(() => {
+		const fetchNextDvNumber = async () => {
+			try {
+				const response = await fetch(
+					'http://localhost:5000/applications/next-dv-number',
+				);
+
+				const data = await response.json();
+
+				if (!response.ok) return;
+
+				if (data.nextDvNumber) {
+					setFormData((prev) => ({
+						...prev,
+						documentNumbers: {
+							...prev.documentNumbers,
+							dvNumber: data.nextDvNumber,
+						},
+					}));
+				}
+			} catch (error) {
+				console.error('Error fetching next DV number:', error);
+			}
+		};
+
+		fetchNextDvNumber();
+	}, []);
 
 	const handleBorrowerChange = (
 		field: keyof FormData['borrower'],
@@ -749,7 +777,7 @@ function NewApplication() {
 							Payslip is Original
 						</label>
 
-						<label className='flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg p-3 hover:bg-gray-100 transition'>
+						<label className='flex items-center gap-3 bg-gray-50 border bordep.postr-gray-200 rounded-lg p-3 hover:bg-gray-100 transition'>
 							<input
 								type='checkbox'
 								checked={formData.checklist.supportingDocuments}

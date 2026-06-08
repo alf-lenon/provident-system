@@ -202,10 +202,89 @@ const applyMonitoringRowStyle = (row: ExcelJS.Row) => {
 	row.height = 18;
 };
 
+// DV Number logic
+const normalizeDvNumber = (value: string) => {
+	return String(value || '').trim();
+};
+
+const getNextDvNumber = (currentDvNumber: string) => {
+	const match = currentDvNumber.match(/^(.*?)(\d+)$/);
+
+	if (!match) return '';
+
+	const prefix = match[1];
+	const numberPart = match[2];
+
+	const nextNumber = String(Number(numberPart) + 1).padStart(
+		numberPart.length,
+		'0',
+	);
+
+	return `${prefix}${nextNumber}`;
+};
+
+app.get('/applications/next-dv-number', async (req, res) => {
+	try {
+		const templatePath = path.join(
+			process.cwd(),
+			'uploads',
+			'templates',
+			'sl.xlsx',
+		);
+
+		if (!fs.existsSync(templatePath)) {
+			return res.status(404).json({
+				message: 'SL template not uploaded yet',
+			});
+		}
+
+		const workbook = new ExcelJS.Workbook();
+		await workbook.xlsx.readFile(templatePath);
+
+		const worksheet = workbook.worksheets[0];
+
+		let latestDvNumber = '';
+
+		worksheet.eachRow((row) => {
+			const value = String(row.getCell('D').text || '').trim();
+
+			if (value) {
+				latestDvNumber = value;
+			}
+		});
+
+		res.json({
+			latestDvNumber,
+			nextDvNumber: latestDvNumber ? getNextDvNumber(latestDvNumber) : '',
+		});
+	} catch (error: any) {
+		res.status(500).json({
+			message: 'Error getting next DV number from SL template',
+			error: error.message,
+		});
+	}
+});
+
 // Save into database or Create new data
 app.post('/applications', async (req, res) => {
 	try {
 		const formData = req.body;
+
+		const dvNumber = normalizeDvNumber(formData.documentNumbers?.dvNumber);
+
+		if (dvNumber) {
+			const existingDvNumber = await ApplicationModel.findOne({
+				'documentNumbers.dvNumber': dvNumber,
+			});
+
+			if (existingDvNumber) {
+				return res.status(400).json({
+					message: `DV Number ${dvNumber} already exists.`,
+				});
+			}
+
+			formData.documentNumbers.dvNumber = dvNumber;
+		}
 
 		//  Save everything
 		const processedData = processApplicationData(formData);
@@ -983,6 +1062,20 @@ app.post('/refunds', async (req, res) => {
 			});
 		}
 
+		const normalizedDvNumber = normalizeDvNumber(dvNumber);
+
+		if (normalizedDvNumber) {
+			const existingDvNumber = await ApplicationModel.findOne({
+				'documentNumbers.dvNumber': normalizedDvNumber,
+			});
+
+			if (existingDvNumber) {
+				return res.status(400).json({
+					message: `DV Number ${normalizedDvNumber} already exists.`,
+				});
+			}
+		}
+
 		const refundRecord = await ApplicationModel.create({
 			borrower: {
 				fullName: borrowerName,
@@ -1045,7 +1138,7 @@ app.post('/refunds', async (req, res) => {
 			},
 
 			documentNumbers: {
-				dvNumber: dvNumber || '',
+				dvNumber: normalizedDvNumber,
 			},
 
 			processing: {

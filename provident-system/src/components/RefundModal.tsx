@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type Props = {
 	onClose: () => void;
@@ -13,6 +13,31 @@ export default function RefundModal({ onClose, onSuccess }: Props) {
 		refundAmount: '',
 		dvNumber: '',
 	});
+
+	useEffect(() => {
+		const fetchNextDvNumber = async () => {
+			try {
+				const response = await fetch(
+					'http://localhost:5000/applications/next-dv-number',
+				);
+
+				const data = await response.json();
+
+				if (!response.ok) return;
+
+				if (data.nextDvNumber) {
+					setFormData((prev) => ({
+						...prev,
+						dvNumber: data.nextDvNumber,
+					}));
+				}
+			} catch (error) {
+				console.error('Error fetching next DV number:', error);
+			}
+		};
+
+		fetchNextDvNumber();
+	}, []);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -48,18 +73,19 @@ export default function RefundModal({ onClose, onSuccess }: Props) {
 
 	return (
 		<div className='fixed inset-0 bg-black/50 flex items-center justify-center'>
-			<div className='bg-white p-6 rounded-lg w-full max-w-md'>
+			<div className='bg-white p-6 rounded-2xl w-full max-w-md shadow-xl'>
 				<h2 className='text-lg font-semibold mb-4'>New Refund</h2>
 
 				<form onSubmit={handleSubmit} className='space-y-3'>
 					<input
 						className={inputClass}
 						placeholder='Borrower Name'
+						required
 						value={formData.borrowerName}
 						onChange={(e) =>
 							setFormData({
 								...formData,
-								borrowerName: e.target.value,
+								borrowerName: e.target.value.toUpperCase(),
 							})
 						}
 					/>
@@ -67,11 +93,12 @@ export default function RefundModal({ onClose, onSuccess }: Props) {
 					<input
 						className={inputClass}
 						placeholder='School / Address'
+						required
 						value={formData.school}
 						onChange={(e) =>
 							setFormData({
 								...formData,
-								school: e.target.value,
+								school: e.target.value.toUpperCase(),
 							})
 						}
 					/>
@@ -79,6 +106,7 @@ export default function RefundModal({ onClose, onSuccess }: Props) {
 					<input
 						className={inputClass}
 						placeholder='Account Number'
+						required
 						value={formData.accountNumber}
 						onChange={(e) =>
 							setFormData({
@@ -92,6 +120,7 @@ export default function RefundModal({ onClose, onSuccess }: Props) {
 						className={inputClass}
 						type='number'
 						placeholder='Refund Amount'
+						required
 						value={formData.refundAmount}
 						onChange={(e) =>
 							setFormData({
@@ -104,6 +133,7 @@ export default function RefundModal({ onClose, onSuccess }: Props) {
 					<input
 						className={inputClass}
 						placeholder='DV Number'
+						required
 						value={formData.dvNumber}
 						onChange={(e) =>
 							setFormData({
@@ -113,11 +143,20 @@ export default function RefundModal({ onClose, onSuccess }: Props) {
 						}
 					/>
 
-					<div className='flex gap-2'>
-						<button type='submit'>Save</button>
-
-						<button type='button' onClick={onClose}>
+					<div className='flex justify-end gap-2 pt-3'>
+						<button
+							type='button'
+							onClick={onClose}
+							className='px-4 py-2 rounded-full border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50'
+						>
 							Cancel
+						</button>
+
+						<button
+							type='submit'
+							className='px-4 py-2 rounded-full bg-orange-500 text-white text-sm font-medium hover:bg-orange-600'
+						>
+							Save Refund
 						</button>
 					</div>
 				</form>

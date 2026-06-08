@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import RefundModal from '../components/RefundModal';
 
 // TypeScript
@@ -106,6 +107,8 @@ function Dashboard() {
 
 	const primaryButtonClass =
 		'px-4 py-2.5 rounded-full bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition';
+
+	const navigate = useNavigate();
 
 	// Delete request to backend
 	const handleDelete = async (id: string) => {
@@ -316,6 +319,21 @@ function Dashboard() {
 		fetchApplications();
 	}, [fetchApplications]);
 
+	// Close automatically when you click anywhere outside it.
+	useEffect(() => {
+		const handleClickOutside = () => {
+			setOpenActionId(null);
+		};
+
+		if (!openActionId) return;
+
+		document.addEventListener('click', handleClickOutside);
+
+		return () => {
+			document.removeEventListener('click', handleClickOutside);
+		};
+	}, [openActionId]);
+
 	const handleSelectApplication = (id: string) => {
 		setSelectedIds((prev) =>
 			prev.includes(id)
@@ -329,7 +347,9 @@ function Dashboard() {
 			{/* Mobile Header */}
 			<div className='md:hidden bg-white border-b border-gray-200 p-4'>
 				<h2 className='text-lg font-bold text-blue-700'>Provident System</h2>
-				<p className='text-sm text-gray-500'>Applications Dashboard</p>
+				<p className='text-xs uppercase tracking-wide text-gray-400'>
+					Applications Dashboard
+				</p>
 			</div>
 
 			{/* Sidebar */}
@@ -342,7 +362,10 @@ function Dashboard() {
 					<button className='w-full text-left px-4 py-2 rounded-lg bg-blue-600 text-white'>
 						Dashboard
 					</button>
-					<button className='w-full text-left px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100'>
+					<button
+						onClick={() => navigate('/new')}
+						className='w-full text-left px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100'
+					>
 						New Application
 					</button>
 					<button className='w-full text-left px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100'>
@@ -364,7 +387,12 @@ function Dashboard() {
 						</p>
 					</div>
 					<div className='flex flex-col sm:flex-row gap-2 w-full md:w-auto'>
-						<button className={primaryButtonClass}>New Application</button>
+						<button
+							onClick={() => navigate('/new')}
+							className={primaryButtonClass}
+						>
+							New Application
+						</button>
 
 						<button
 							onClick={() => setShowRefundModal(true)}
@@ -378,15 +406,17 @@ function Dashboard() {
 				{/* Stats Cards */}
 				<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>
 					<div className={`${cardClass} p-5`}>
-						<p className='text-sm text-gray-500'>Total Applications</p>
-						<h3 className='text-2xl font-bold text-gray-800'>
-							{totalApplications}
-						</h3>
+						<p className='text-xs uppercase tracking-wide text-gray-400'>
+							Total Applications
+						</p>
+						<h3 className='text-3xl font-semibold'>{totalApplications}</h3>
 					</div>
 
 					<div className={`${cardClass} p-5`}>
-						<p className='text-sm text-gray-500'>Ready</p>
-						<h3 className='text-2xl font-bold text-green-600'>
+						<p className='text-xs uppercase tracking-wide text-gray-400'>
+							Ready
+						</p>
+						<h3 className='text-3xl font-semibold'>
 							{
 								applications.filter(
 									(app) => app.evaluation.status === 'Ready for Processing',
@@ -396,8 +426,10 @@ function Dashboard() {
 					</div>
 
 					<div className={`${cardClass} p-5`}>
-						<p className='text-sm text-gray-500'>Needs Correction</p>
-						<h3 className='text-2xl font-bold text-yellow-600'>
+						<p className='text-xs uppercase tracking-wide text-gray-400'>
+							Needs Correction
+						</p>
+						<h3 className='text-3xl font-semibold '>
 							{
 								applications.filter(
 									(app) => app.evaluation.status === 'Needs Correction',
@@ -407,13 +439,39 @@ function Dashboard() {
 					</div>
 
 					<div className={`${cardClass} p-5`}>
-						<p className='text-sm text-gray-500'>Rejected</p>
-						<h3 className='text-2xl font-bold text-red-600'>
+						<p className='text-xs uppercase tracking-wide text-gray-400'>
+							Rejected
+						</p>
+						<h3 className='text-3xl font-semibold'>
 							{
 								applications.filter(
 									(app) => app.evaluation.status === 'Rejected',
 								).length
 							}
+						</h3>
+					</div>
+
+					<div className={`${cardClass} p-5`}>
+						<p className='text-xs uppercase tracking-wide text-gray-400'>
+							Processed
+						</p>
+
+						<h3 className='text-3xl font-semibold'>
+							{
+								applications.filter(
+									(app) => app.processing?.status === 'Processed',
+								).length
+							}
+						</h3>
+					</div>
+
+					<div className={`${cardClass} p-5`}>
+						<p className='text-xs uppercase tracking-wide text-gray-400'>
+							Released
+						</p>
+
+						<h3 className='text-3xl font-semibold'>
+							{applications.filter((app) => app.processing?.released).length}
 						</h3>
 					</div>
 				</div>
@@ -620,7 +678,7 @@ function Dashboard() {
 											<p className='font-semibold text-gray-900'>
 												{app.borrower.fullName}
 											</p>
-											<p className='text-sm text-gray-500'>
+											<p className='text-xs uppercase tracking-wide text-gray-400'>
 												{app.loan.loanType} • ₱
 												{Number(app.loan.loanAmount).toLocaleString('en-PH')}
 											</p>
@@ -899,18 +957,22 @@ function Dashboard() {
 													</button>
 
 													<button
-														onClick={() =>
+														onClick={(e) => {
+															e.stopPropagation();
 															setOpenActionId(
 																openActionId === app._id ? null : app._id,
-															)
-														}
+															);
+														}}
 														className='rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition'
 													>
 														More
 													</button>
 
 													{openActionId === app._id && (
-														<div className='absolute right-0 top-11 z-20 w-48 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg'>
+														<div
+															onClick={(e) => e.stopPropagation()}
+															className='absolute right-0 top-11 z-20 w-48 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg'
+														>
 															<button
 																onClick={() => {
 																	setEditingApplication(app);
@@ -1060,7 +1122,7 @@ function Dashboard() {
 			{selectedApplication && (
 				<div className='fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50'>
 					<div className='bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6'>
-						<div className='flex justify-between items-center border-b pb-4 mb-6'>
+						<div className='sticky top-0 bg-white z-10 flex justify-between items-center border-b pb-4 mb-6'>
 							<div>
 								<h2 className='text-xl font-bold text-gray-800'>
 									Application Details
@@ -1068,8 +1130,10 @@ function Dashboard() {
 
 								<div className='grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 mb-6'>
 									{/* Status */}
-									<div className='bg-white border rounded-xl p-4 shadow-sm'>
-										<p className='text-sm text-gray-500'>Status</p>
+									<div className='bg-white border border-gray-200 rounded-2xl p-4'>
+										<p className='text-xs uppercase tracking-wide text-gray-400'>
+											Status
+										</p>
 
 										<span
 											className={
@@ -1087,10 +1151,12 @@ function Dashboard() {
 									</div>
 
 									{/* NPAD */}
-									<div className='bg-white border rounded-xl p-4 shadow-sm'>
-										<p className='text-sm text-gray-500'>NPAD</p>
+									<div className='bg-white border border-gray-200 rounded-2xl p-4'>
+										<p className='text-xs uppercase tracking-wide text-gray-400'>
+											NPAD
+										</p>
 
-										<p className='text-xl font-bold text-gray-800 mt-2'>
+										<p className='text-2xl font-semibold text-gray-800 mt-2'>
 											₱
 											{selectedApplication.evaluation.netPayAfterDeduction.toLocaleString(
 												'en-PH',
@@ -1099,10 +1165,12 @@ function Dashboard() {
 									</div>
 
 									{/* Existing Balance */}
-									<div className='bg-white border rounded-xl p-4 shadow-sm'>
-										<p className='text-sm text-gray-500'>Existing Balance</p>
+									<div className='bg-white border border-gray-200 rounded-2xl p-4'>
+										<p className='text-xs uppercase tracking-wide text-gray-400'>
+											Existing Balance
+										</p>
 
-										<p className='text-xl font-bold text-gray-800 mt-2'>
+										<p className='text-2xl font-semibold text-gray-800 mt-2'>
 											₱
 											{selectedApplication.evaluation.existingBalance.toLocaleString(
 												'en-PH',
@@ -1111,10 +1179,12 @@ function Dashboard() {
 									</div>
 
 									{/* Loan Granted */}
-									<div className='bg-white border rounded-xl p-4 shadow-sm'>
-										<p className='text-sm text-gray-500'>Final Loan Granted</p>
+									<div className='bg-white border border-gray-200 rounded-2xl p-4'>
+										<p className='text-xs uppercase tracking-wide text-gray-400'>
+											Final Loan Granted
+										</p>
 
-										<p className='text-xl font-bold text-gray-800 mt-2'>
+										<p className='text-2xl font-semibold text-gray-800 mt-2'>
 											₱
 											{selectedApplication.evaluation.finalLoanGranted.toLocaleString(
 												'en-PH',
@@ -1123,14 +1193,35 @@ function Dashboard() {
 									</div>
 								</div>
 
-								<p className='text-sm text-gray-500'>
+								<p className='text-xs uppercase tracking-wide text-gray-400'>
 									Complete borrower and loan information
 								</p>
+
+								<div className='flex flex-wrap gap-2 mt-4'>
+									<span className='bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium'>
+										{selectedApplication.loan.loanType}
+									</span>
+
+									<span className='bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium'>
+										LAF #{selectedApplication.borrower.lafNumber}
+									</span>
+
+									<span className='bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium'>
+										DV No: {selectedApplication.documentNumbers.dvNumber}
+									</span>
+
+									<span className='bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium'>
+										₱
+										{selectedApplication.evaluation.finalLoanGranted.toLocaleString(
+											'en-PH',
+										)}
+									</span>
+								</div>
 							</div>
 
 							<button
 								onClick={() => setSelectedApplication(null)}
-								className='text-gray-500 hover:text-gray-800'
+								className='rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition'
 							>
 								Close
 							</button>
@@ -1277,7 +1368,7 @@ function Dashboard() {
 											)}
 										</ul>
 									) : (
-										<p className='text-sm text-gray-500'>
+										<p className='text-xs uppercase tracking-wide text-gray-400'>
 											No rejection reason recorded.
 										</p>
 									)}
@@ -1307,7 +1398,7 @@ function Dashboard() {
 			{editingApplication && (
 				<div className='fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50'>
 					<div className='bg-white rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6'>
-						<div className='flex justify-between items-center border-b pb-4 mb-6'>
+						<div className='sticky top-0 bg-white z-10 flex justify-between items-center border-b pb-4 mb-6'>
 							<h2 className='text-xl font-bold text-gray-800'>
 								Edit Application
 							</h2>
