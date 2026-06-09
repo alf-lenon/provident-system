@@ -223,6 +223,15 @@ const getNextDvNumber = (currentDvNumber: string) => {
 	return `${prefix}${nextNumber}`;
 };
 
+// LAF Number Logic
+const getNextLafNumber = (currentLafNumber: string) => {
+	const numberValue = Number(String(currentLafNumber || '').trim());
+
+	if (!numberValue || Number.isNaN(numberValue)) return '';
+
+	return String(numberValue + 1);
+};
+
 app.get('/applications/next-dv-number', async (req, res) => {
 	try {
 		const templatePath = path.join(
@@ -265,6 +274,52 @@ app.get('/applications/next-dv-number', async (req, res) => {
 	}
 });
 
+app.get('/applications/next-laf-number', async (req, res) => {
+	try {
+		const templatePath = path.join(
+			process.cwd(),
+			'uploads',
+			'templates',
+			'sl.xlsx',
+		);
+
+		if (!fs.existsSync(templatePath)) {
+			return res.status(404).json({
+				message: 'SL template not uploaded yet',
+			});
+		}
+
+		const workbook = new ExcelJS.Workbook();
+		await workbook.xlsx.readFile(templatePath);
+
+		const worksheet = workbook.worksheets[0];
+
+		let highestLafNumber = 0;
+
+		worksheet.eachRow((row) => {
+			const value = String(row.getCell('V').text || '').trim();
+
+			if (/^\d+$/.test(value)) {
+				const numberValue = Number(value);
+
+				if (numberValue > highestLafNumber) {
+					highestLafNumber = numberValue;
+				}
+			}
+		});
+
+		res.json({
+			latestLafNumber: highestLafNumber ? String(highestLafNumber) : '',
+			nextLafNumber: highestLafNumber ? String(highestLafNumber + 1) : '',
+		});
+	} catch (error: any) {
+		res.status(500).json({
+			message: 'Error getting next LAF number from SL template',
+			error: error.message,
+		});
+	}
+});
+
 // Save into database or Create new data
 app.post('/applications', async (req, res) => {
 	try {
@@ -284,6 +339,22 @@ app.post('/applications', async (req, res) => {
 			}
 
 			formData.documentNumbers.dvNumber = dvNumber;
+		}
+
+		const lafNumber = String(formData.borrower?.lafNumber || '').trim();
+
+		if (lafNumber) {
+			const existingLafNumber = await ApplicationModel.findOne({
+				'borrower.lafNumber': lafNumber,
+			});
+
+			if (existingLafNumber) {
+				return res.status(400).json({
+					message: `LAF Number ${lafNumber} already exists.`,
+				});
+			}
+
+			formData.borrower.lafNumber = lafNumber;
 		}
 
 		//  Save everything
@@ -1385,6 +1456,37 @@ app.get('/debug/sl-template', async (req, res) => {
 	}
 });
 
+app.get('/debug/sl-laf-column', async (req, res) => {
+	const templatePath = path.join(
+		process.cwd(),
+		'uploads',
+		'templates',
+		'sl.xlsx',
+	);
+
+	const workbook = new ExcelJS.Workbook();
+	await workbook.xlsx.readFile(templatePath);
+
+	const worksheet = workbook.worksheets[0];
+
+	const values: any[] = [];
+
+	for (let rowNumber = 1; rowNumber <= worksheet.rowCount; rowNumber++) {
+		const cell = worksheet.getCell(`V${rowNumber}`);
+
+		if (cell.text || cell.value) {
+			values.push({
+				rowNumber,
+				text: cell.text,
+				value: cell.value,
+				result: (cell.value as any)?.result,
+			});
+		}
+	}
+
+	res.json(values);
+});
+
 // Export single SL File
 app.get('/applications/:id/export/sl', async (req, res) => {
 	try {
@@ -1629,6 +1731,40 @@ app.put('/applications/:id', async (req, res) => {
 		// Express automatically gives the req.params from '/applications/:id'
 		// Get the id and save it into variable
 		const { id } = req.params;
+
+		const lafNumber = String(req.body.borrower?.lafNumber || '').trim();
+
+		if (lafNumber) {
+			const existingLafNumber = await ApplicationModel.findOne({
+				'borrower.lafNumber': lafNumber,
+				_id: { $ne: id },
+			});
+
+			if (existingLafNumber) {
+				return res.status(400).json({
+					message: `LAF Number ${lafNumber} already exists.`,
+				});
+			}
+
+			req.body.borrower.lafNumber = lafNumber;
+		}
+
+		const dvNumber = normalizeDvNumber(req.body.documentNumbers?.dvNumber);
+
+		if (dvNumber) {
+			const existingDvNumber = await ApplicationModel.findOne({
+				'documentNumbers.dvNumber': dvNumber,
+				_id: { $ne: id },
+			});
+
+			if (existingDvNumber) {
+				return res.status(400).json({
+					message: `DV Number ${dvNumber} already exists.`,
+				});
+			}
+
+			req.body.documentNumbers.dvNumber = dvNumber;
+		}
 
 		const processedData = processApplicationData(req.body);
 

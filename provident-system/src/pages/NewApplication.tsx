@@ -180,6 +180,32 @@ function NewApplication() {
 		};
 
 		fetchNextDvNumber();
+
+		const fetchNextLafNumber = async () => {
+			try {
+				const response = await fetch(
+					'http://localhost:5000/applications/next-laf-number',
+				);
+
+				const data = await response.json();
+
+				if (!response.ok) return;
+
+				if (data.nextLafNumber) {
+					setFormData((prev) => ({
+						...prev,
+						borrower: {
+							...prev.borrower,
+							lafNumber: data.nextLafNumber,
+						},
+					}));
+				}
+			} catch (error) {
+				console.error('Error fetching next LAF number:', error);
+			}
+		};
+
+		fetchNextLafNumber();
 	}, []);
 
 	const handleBorrowerChange = (
