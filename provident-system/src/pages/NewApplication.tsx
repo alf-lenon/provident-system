@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 type FormData = {
 	// TypeScript
@@ -86,6 +87,7 @@ type BackendResult = {
 };
 
 function NewApplication() {
+	const navigate = useNavigate();
 	const [formData, setFormData] = useState<FormData>({
 		borrower: {
 			fullName: '',
@@ -354,11 +356,20 @@ function NewApplication() {
 	return (
 		<main className='min-h-screen bg-gray-100 p-6'>
 			{/* Header */}
-			<header className='mb-6'>
-				<h1 className='text-2xl font-bold text-gray-800'>
-					New Loan Application
-				</h1>
-				<p className='text-gray-600'>Fill out borrower and loan details</p>
+			<header className='mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
+				<div>
+					<h1 className='text-2xl font-bold text-gray-800'>
+						New Loan Application
+					</h1>
+					<p className='text-gray-600'>Fill out borrower and loan details</p>
+				</div>
+
+				<button
+					onClick={() => navigate('/')}
+					className='px-4 py-2.5 rounded-full bg-white border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition'
+				>
+					Back to Dashboard
+				</button>
 			</header>
 
 			{/* Form Container */}

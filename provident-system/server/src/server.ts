@@ -1112,11 +1112,21 @@ app.post(
 app.get('/templates/status', (req, res) => {
 	const templateDir = path.join(process.cwd(), 'uploads', 'templates');
 
+	const getTemplateInfo = (fileName: string) => {
+		const filePath = path.join(templateDir, fileName);
+		const exists = fs.existsSync(filePath);
+
+		return {
+			uploaded: exists,
+			fileName: exists ? fileName : '',
+		};
+	};
+
 	res.json({
-		monitoring: fs.existsSync(path.join(templateDir, 'monitoring.xlsx')),
-		sl: fs.existsSync(path.join(templateDir, 'sl.xlsx')),
-		dv: fs.existsSync(path.join(templateDir, 'dv.xlsx')),
-		payroll: fs.existsSync(path.join(templateDir, 'payroll.xlsx')),
+		monitoring: getTemplateInfo('monitoring.xlsx'),
+		sl: getTemplateInfo('sl.xlsx'),
+		dv: getTemplateInfo('dv.xlsx'),
+		payroll: getTemplateInfo('payroll.xlsx'),
 	});
 });
 

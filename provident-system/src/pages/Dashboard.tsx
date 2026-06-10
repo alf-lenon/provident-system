@@ -359,7 +359,10 @@ function Dashboard() {
 				</h2>
 
 				<nav className='space-y-2'>
-					<button className='w-full text-left px-4 py-2 rounded-lg bg-blue-600 text-white'>
+					<button
+						onClick={() => navigate('/')}
+						className='w-full text-left px-4 py-2 rounded-lg bg-blue-600 text-white'
+					>
 						Dashboard
 					</button>
 					<button
@@ -368,8 +371,11 @@ function Dashboard() {
 					>
 						New Application
 					</button>
-					<button className='w-full text-left px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100'>
-						Applications
+					<button
+						onClick={() => navigate('/templates')}
+						className='w-full text-left px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100'
+					>
+						Templates
 					</button>
 				</nav>
 			</aside>
