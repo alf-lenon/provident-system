@@ -74,6 +74,16 @@ type Application = {
 	documentNumbers: {
 		dvNumber: string;
 	};
+
+	routing?: {
+		currentOffice: string;
+		history: {
+			office: string;
+			receivedBy: string;
+			dateReceived: string;
+			remarks: string;
+		}[];
+	};
 };
 function Dashboard() {
 	const [applications, setApplications] = useState<Application[]>([]);
@@ -100,6 +110,23 @@ function Dashboard() {
 
 	const [openActionId, setOpenActionId] = useState<string | null>(null);
 
+	const [routingApplication, setRoutingApplication] =
+		useState<Application | null>(null);
+
+	const [routingForm, setRoutingForm] = useState({
+		office: '',
+		receivedBy: '',
+		remarks: '',
+	});
+
+	const [showBulkRoutingModal, setShowBulkRoutingModal] = useState(false);
+
+	const [bulkRoutingForm, setBulkRoutingForm] = useState({
+		office: '',
+		receivedBy: '',
+		remarks: '',
+	});
+
 	const cardClass = 'bg-white/90 border border-gray-200 rounded-2xl shadow-sm';
 
 	const inputClass =
@@ -107,6 +134,15 @@ function Dashboard() {
 
 	const primaryButtonClass =
 		'px-4 py-2.5 rounded-full bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition';
+
+	const signatoryOffices = [
+		'Legal',
+		'HR',
+		'Accounting',
+		'Admin',
+		'Schools Division Superintendent',
+		'Accounting - Final Approval',
+	];
 
 	const navigate = useNavigate();
 
@@ -276,6 +312,121 @@ function Dashboard() {
 
 		return matchesSearch && matchesStatus;
 	});
+
+	const handleRouteApplication = async () => {
+		if (!routingApplication) return;
+
+		try {
+			const response = await fetch(
+				`http://localhost:5000/applications/${routingApplication._id}/route`,
+				{
+					method: 'PUT',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify(routingForm),
+				},
+			);
+
+			const data = await response.json();
+
+			if (!response.ok) {
+				alert(data.message || 'Failed to update routing');
+				return;
+			}
+
+			setApplications((prev) =>
+				prev.map((app) =>
+					app._id === routingApplication._id ? data.application : app,
+				),
+			);
+
+			setRoutingApplication(null);
+			setRoutingForm({
+				office: '',
+				receivedBy: '',
+				remarks: '',
+			});
+		} catch (error) {
+			console.error('Error updating routing:', error);
+			alert('Could not connect to the server.');
+		}
+	};
+
+	const handleBulkRouteApplications = async () => {
+		try {
+			const response = await fetch(
+				'http://localhost:5000/applications/route/bulk',
+				{
+					method: 'PUT',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						ids: selectedIds,
+						...bulkRoutingForm,
+					}),
+				},
+			);
+
+			const data = await response.json();
+
+			if (!response.ok) {
+				alert(data.message || 'Failed to update selected locations');
+				return;
+			}
+
+			setApplications((prev) =>
+				prev.map((app) => {
+					const updatedApp = data.applications.find(
+						(updated: Application) => updated._id === app._id,
+					);
+
+					return updatedApp || app;
+				}),
+			);
+
+			setShowBulkRoutingModal(false);
+			setBulkRoutingForm({
+				office: '',
+				receivedBy: '',
+				remarks: '',
+			});
+			setSelectedIds([]);
+		} catch (error) {
+			console.error('Error updating bulk routing:', error);
+			alert('Could not connect to the server.');
+		}
+	};
+
+	const handleUndoLastRoute = async (applicationId: string) => {
+		const confirmed = window.confirm('Undo the last routing entry?');
+
+		if (!confirmed) return;
+
+		try {
+			const response = await fetch(
+				`http://localhost:5000/applications/${applicationId}/routing/undo`,
+				{
+					method: 'PUT',
+				},
+			);
+
+			const data = await response.json();
+
+			if (!response.ok) {
+				alert(data.message || 'Failed to undo route');
+				return;
+			}
+
+			setApplications((prev) =>
+				prev.map((app) => (app._id === applicationId ? data.application : app)),
+			);
+		} catch (error) {
+			console.error(error);
+			alert('Could not connect to the server');
+		}
+	};
 
 	const canProcess = (app: Application) => {
 		return app.evaluation.status === 'Ready for Processing';
@@ -520,7 +671,7 @@ function Dashboard() {
 
 						{error && <p className='text-sm text-red-600 mb-4'>{error}</p>}
 
-						<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 mb-4'>
+						<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 mb-4'>
 							<button
 								disabled={selectedIds.length === 0}
 								onClick={async () => {
@@ -652,6 +803,18 @@ function Dashboard() {
 								}
 							>
 								Export Selected Payroll ({selectedIds.length})
+							</button>
+
+							<button
+								disabled={selectedIds.length === 0}
+								onClick={() => setShowBulkRoutingModal(true)}
+								className={
+									selectedIds.length === 0
+										? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed w-full'
+										: 'bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 transition w-full'
+								}
+							>
+								Update Location ({selectedIds.length})
 							</button>
 
 							<button
@@ -834,6 +997,10 @@ function Dashboard() {
 											Release
 										</th>
 
+										<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
+											Location
+										</th>
+
 										<th className='px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase'>
 											Actions
 										</th>
@@ -844,7 +1011,7 @@ function Dashboard() {
 									{filteredApplications.length === 0 && (
 										<tr>
 											<td
-												colSpan={9}
+												colSpan={10}
 												className='px-6 py-8 text-center text-gray-500'
 											>
 												No applications found.
@@ -953,6 +1120,12 @@ function Dashboard() {
 												)}
 											</td>
 
+											<td className='px-6 py-4'>
+												<span className='bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium'>
+													{app.routing?.currentOffice || 'Not Routed'}
+												</span>
+											</td>
+
 											<td className='px-6 py-4 text-center'>
 												<div className='relative flex justify-center gap-2'>
 													<button
@@ -988,6 +1161,33 @@ function Dashboard() {
 															>
 																Edit
 															</button>
+
+															<button
+																onClick={() => {
+																	setRoutingApplication(app);
+																	setRoutingForm({
+																		office: app.routing?.currentOffice || '',
+																		receivedBy: '',
+																		remarks: '',
+																	});
+																	setOpenActionId(null);
+																}}
+																className='w-full rounded-xl px-3 py-2 text-left text-sm text-blue-700 hover:bg-blue-50'
+															>
+																Route / Update Location
+															</button>
+
+															{app.routing?.history?.length ? (
+																<button
+																	onClick={() => {
+																		handleUndoLastRoute(app._id);
+																		setOpenActionId(null);
+																	}}
+																	className='w-full rounded-xl px-3 py-2 text-left text-sm text-orange-700 hover:bg-orange-50'
+																>
+																	Undo Last Route
+																</button>
+															) : null}
 
 															<button
 																onClick={() => {
@@ -1394,6 +1594,60 @@ function Dashboard() {
 									</ul>
 								) : (
 									<p className='text-sm text-green-600'>No corrections.</p>
+								)}
+							</section>
+
+							<section className='md:col-span-2 bg-gray-50 border border-gray-200 rounded-xl p-5'>
+								<div className='flex items-center justify-between mb-3'>
+									<h3 className='font-semibold text-gray-800'>
+										Routing History
+									</h3>
+
+									<span className='bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium'>
+										{selectedApplication.routing?.currentOffice || 'Not Routed'}
+									</span>
+								</div>
+
+								{selectedApplication.routing?.history?.length ? (
+									<div className='space-y-3'>
+										{selectedApplication.routing.history.map((route, index) => (
+											<div
+												key={index}
+												className='bg-white border border-gray-200 rounded-2xl p-4'
+											>
+												<div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1'>
+													<p className='font-medium text-gray-800'>
+														{route.office}
+													</p>
+
+													<p className='text-xs text-gray-500'>
+														{new Date(route.dateReceived).toLocaleDateString(
+															'en-PH',
+															{
+																year: 'numeric',
+																month: 'short',
+																day: 'numeric',
+															},
+														)}
+													</p>
+												</div>
+
+												<p className='text-sm text-gray-600 mt-1'>
+													Received by: {route.receivedBy}
+												</p>
+
+												{route.remarks && (
+													<p className='text-sm text-gray-500 mt-1'>
+														Remarks: {route.remarks}
+													</p>
+												)}
+											</div>
+										))}
+									</div>
+								) : (
+									<p className='text-sm text-gray-500'>
+										No routing history yet.
+									</p>
 								)}
 							</section>
 						</div>
@@ -2023,11 +2277,238 @@ function Dashboard() {
 				</div>
 			)}
 
+			{routingApplication && (
+				<div className='fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50'>
+					<div className='bg-white rounded-2xl shadow-xl max-w-md w-full p-6'>
+						<div className='flex items-start justify-between border-b border-gray-200 pb-4 mb-5'>
+							<div>
+								<h2 className='text-xl font-bold text-gray-800'>
+									Route Application
+								</h2>
+								<p className='text-sm text-gray-500'>
+									{routingApplication.borrower.fullName}
+								</p>
+							</div>
+
+							<button
+								onClick={() => setRoutingApplication(null)}
+								className='rounded-full border border-gray-200 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50'
+							>
+								Close
+							</button>
+						</div>
+
+						<div className='space-y-4'>
+							<div>
+								<label className='block text-sm font-medium text-gray-700 mb-1'>
+									Office / Signatory
+								</label>
+
+								<select
+									value={routingForm.office}
+									onChange={(e) =>
+										setRoutingForm({
+											...routingForm,
+											office: e.target.value,
+										})
+									}
+									className={inputClass}
+								>
+									<option value=''>Select office</option>
+
+									{signatoryOffices.map((office) => (
+										<option key={office} value={office}>
+											{office}
+										</option>
+									))}
+								</select>
+							</div>
+
+							<div>
+								<label className='block text-sm font-medium text-gray-700 mb-1'>
+									Received By
+								</label>
+
+								<input
+									type='text'
+									value={routingForm.receivedBy}
+									onChange={(e) =>
+										setRoutingForm({
+											...routingForm,
+											receivedBy: e.target.value,
+										})
+									}
+									className={inputClass}
+									placeholder='Name of receiving person'
+								/>
+							</div>
+
+							<div>
+								<label className='block text-sm font-medium text-gray-700 mb-1'>
+									Remarks
+								</label>
+
+								<textarea
+									value={routingForm.remarks}
+									onChange={(e) =>
+										setRoutingForm({
+											...routingForm,
+											remarks: e.target.value,
+										})
+									}
+									className={inputClass}
+									rows={3}
+									placeholder='Optional remarks'
+								/>
+							</div>
+						</div>
+
+						<div className='flex justify-end gap-2 mt-6'>
+							<button
+								onClick={() => setRoutingApplication(null)}
+								className='px-4 py-2 rounded-full border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50'
+							>
+								Cancel
+							</button>
+
+							<button
+								onClick={handleRouteApplication}
+								disabled={!routingForm.office || !routingForm.receivedBy}
+								className={
+									!routingForm.office || !routingForm.receivedBy
+										? 'px-4 py-2 rounded-full bg-gray-300 text-gray-500 text-sm font-medium cursor-not-allowed'
+										: 'px-4 py-2 rounded-full bg-blue-600 text-white text-sm font-medium hover:bg-blue-700'
+								}
+							>
+								Save Route
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+
 			{showRefundModal && (
 				<RefundModal
 					onClose={() => setShowRefundModal(false)}
 					onSuccess={() => fetchApplications()}
 				/>
+			)}
+
+			{showBulkRoutingModal && (
+				<div className='fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50'>
+					<div className='bg-white rounded-2xl shadow-xl max-w-md w-full p-6'>
+						<div className='flex items-start justify-between border-b border-gray-200 pb-4 mb-5'>
+							<div>
+								<h2 className='text-xl font-bold text-gray-800'>
+									Bulk Update Location
+								</h2>
+								<p className='text-sm text-gray-500'>
+									{selectedIds.length} selected application
+									{selectedIds.length > 1 ? 's' : ''}
+								</p>
+							</div>
+
+							<button
+								onClick={() => setShowBulkRoutingModal(false)}
+								className='rounded-full border border-gray-200 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50'
+							>
+								Close
+							</button>
+						</div>
+
+						<div className='space-y-4'>
+							<div>
+								<label className='block text-sm font-medium text-gray-700 mb-1'>
+									Office / Signatory
+								</label>
+
+								<select
+									value={bulkRoutingForm.office}
+									onChange={(e) =>
+										setBulkRoutingForm({
+											...bulkRoutingForm,
+											office: e.target.value,
+										})
+									}
+									className={inputClass}
+								>
+									<option value=''>Select office</option>
+
+									{signatoryOffices.map((office) => (
+										<option key={office} value={office}>
+											{office}
+										</option>
+									))}
+								</select>
+							</div>
+
+							<div>
+								<label className='block text-sm font-medium text-gray-700 mb-1'>
+									Received By
+								</label>
+
+								<input
+									type='text'
+									value={bulkRoutingForm.receivedBy}
+									onChange={(e) =>
+										setBulkRoutingForm({
+											...bulkRoutingForm,
+											receivedBy: e.target.value,
+										})
+									}
+									className={inputClass}
+									placeholder='Name of receiving person'
+								/>
+							</div>
+
+							<div>
+								<label className='block text-sm font-medium text-gray-700 mb-1'>
+									Remarks
+								</label>
+
+								<textarea
+									value={bulkRoutingForm.remarks}
+									onChange={(e) =>
+										setBulkRoutingForm({
+											...bulkRoutingForm,
+											remarks: e.target.value,
+										})
+									}
+									className={inputClass}
+									rows={3}
+									placeholder='Optional remarks'
+								/>
+							</div>
+						</div>
+
+						<div className='flex justify-end gap-2 mt-6'>
+							<button
+								onClick={() => setShowBulkRoutingModal(false)}
+								className='px-4 py-2 rounded-full border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50'
+							>
+								Cancel
+							</button>
+
+							<button
+								onClick={handleBulkRouteApplications}
+								disabled={
+									!bulkRoutingForm.office ||
+									!bulkRoutingForm.receivedBy ||
+									selectedIds.length === 0
+								}
+								className={
+									!bulkRoutingForm.office ||
+									!bulkRoutingForm.receivedBy ||
+									selectedIds.length === 0
+										? 'px-4 py-2 rounded-full bg-gray-300 text-gray-500 text-sm font-medium cursor-not-allowed'
+										: 'px-4 py-2 rounded-full bg-sky-600 text-white text-sm font-medium hover:bg-sky-700'
+								}
+							>
+								Update Location
+							</button>
+						</div>
+					</div>
+				</div>
 			)}
 		</main>
 	);

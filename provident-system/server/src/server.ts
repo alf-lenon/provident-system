@@ -1054,6 +1054,111 @@ app.post('/applications/export/payroll/bulk', async (req, res) => {
 	}
 });
 
+app.put('/applications/route/bulk', async (req, res) => {
+	try {
+		const { ids, office, receivedBy, remarks } = req.body;
+
+		if (!ids || !Array.isArray(ids) || ids.length === 0) {
+			return res.status(400).json({
+				message: 'No application IDs provided',
+			});
+		}
+
+		if (!office || !receivedBy) {
+			return res.status(400).json({
+				message: 'Office and received by are required',
+			});
+		}
+
+		const routingEntry = {
+			office,
+			receivedBy,
+			dateReceived: new Date(),
+			remarks: remarks || '',
+		};
+
+		await ApplicationModel.updateMany(
+			{
+				_id: { $in: ids },
+			},
+			{
+				'routing.currentOffice': office,
+				$push: {
+					'routing.history': routingEntry,
+				},
+			},
+			{
+				runValidators: true,
+			},
+		);
+
+		const updatedApplications = await ApplicationModel.find({
+			_id: { $in: ids },
+		});
+
+		res.json({
+			message: `${updatedApplications.length} applications routed to ${office}`,
+			applications: updatedApplications,
+		});
+	} catch (error: any) {
+		res.status(500).json({
+			message: 'Error updating bulk routing status',
+			error: error.message,
+		});
+	}
+});
+
+app.put('/applications/:id/routing/undo', async (req, res) => {
+	try {
+		const { id } = req.params;
+
+		const application = await ApplicationModel.findById(id);
+
+		if (!application) {
+			return res.status(404).json({
+				message: 'Application not found',
+			});
+		}
+
+		const history = application.routing?.history || [];
+
+		if (history.length === 0) {
+			return res.status(400).json({
+				message: 'No routing history to undo',
+			});
+		}
+
+		const updatedHistory = history.slice(0, -1);
+
+		const previousOffice =
+			updatedHistory.length > 0
+				? updatedHistory[updatedHistory.length - 1].office || 'Not Routed'
+				: 'Not Routed';
+
+		const updatedApplication = await ApplicationModel.findByIdAndUpdate(
+			id,
+			{
+				'routing.currentOffice': previousOffice,
+				'routing.history': updatedHistory,
+			},
+			{
+				new: true,
+				runValidators: true,
+			},
+		);
+
+		res.json({
+			message: 'Last routing entry removed',
+			application: updatedApplication,
+		});
+	} catch (error: any) {
+		res.status(500).json({
+			message: 'Error undoing routing history',
+			error: error.message,
+		});
+	}
+});
+
 const templateStorage = multer.diskStorage({
 	destination: (req, file, cb) => {
 		cb(null, 'uploads/templates');
@@ -1871,6 +1976,57 @@ app.put('/applications/:id/release', async (req, res) => {
 	} catch (error: any) {
 		res.status(400).json({
 			message: 'Error marking application as released',
+			error: error.message,
+		});
+	}
+});
+
+// Signatories tracker backend route
+app.put('/applications/:id/route', async (req, res) => {
+	try {
+		const { id } = req.params;
+		const { office, receivedBy, remarks } = req.body;
+
+		if (!office || !receivedBy) {
+			return res.status(400).json({
+				message: 'Office and received by are required',
+			});
+		}
+
+		const routingEntry = {
+			office,
+			receivedBy,
+			dateReceived: new Date(),
+			remarks: remarks || '',
+		};
+
+		const updatedApplication = await ApplicationModel.findByIdAndUpdate(
+			id,
+			{
+				'routing.currentOffice': office,
+				$push: {
+					'routing.history': routingEntry,
+				},
+			},
+			{
+				new: true,
+				runValidators: true,
+			},
+		);
+
+		if (!updatedApplication) {
+			return res.status(404).json({
+				message: 'Application not found',
+			});
+		}
+
+		res.json({
+			message: `Application routed to ${office}`,
+			application: updatedApplication,
+		});
+	} catch (error: any) {
+		res.status(500).json({
+			message: 'Error updating routing status',
 			error: error.message,
 		});
 	}

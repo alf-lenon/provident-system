@@ -107,6 +107,25 @@ const applicationSchema = new mongoose.Schema(
 
 			dateReleased: Date,
 		},
+
+		routing: {
+			currentOffice: {
+				type: String,
+				default: 'Not Routed',
+			},
+
+			history: [
+				{
+					office: String,
+					receivedBy: String,
+					dateReceived: {
+						type: Date,
+						default: Date.now,
+					},
+					remarks: String,
+				},
+			],
+		},
 	},
 	{
 		timestamps: true,
