@@ -127,6 +127,8 @@ function Dashboard() {
 		remarks: '',
 	});
 
+	const [showExportMenu, setShowExportMenu] = useState(false);
+
 	const cardClass = 'bg-white/90 border border-gray-200 rounded-2xl shadow-sm';
 
 	const inputClass =
@@ -136,6 +138,15 @@ function Dashboard() {
 		'px-4 py-2.5 rounded-full bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition';
 
 	const signatoryOffices = [
+		'Legal',
+		'HR',
+		'Accounting',
+		'Admin',
+		'Schools Division Superintendent',
+		'Accounting - Final Approval',
+	];
+
+	const routingSteps = [
 		'Legal',
 		'HR',
 		'Accounting',
@@ -313,6 +324,14 @@ function Dashboard() {
 		return matchesSearch && matchesStatus;
 	});
 
+	const selectedApplications = applications.filter((app) =>
+		selectedIds.includes(app._id),
+	);
+
+	const selectedTotalAmount = selectedApplications.reduce((total, app) => {
+		return total + Number(app.evaluation.finalLoanGranted || 0);
+	}, 0);
+
 	const handleRouteApplication = async () => {
 		if (!routingApplication) return;
 
@@ -428,12 +447,51 @@ function Dashboard() {
 		}
 	};
 
+	const handleBulkExport = async (endpoint: string, filename: string) => {
+		const response = await fetch(endpoint, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ ids: selectedIds }),
+		});
+
+		const blob = await response.blob();
+		const url = window.URL.createObjectURL(blob);
+
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = filename;
+		link.click();
+
+		window.URL.revokeObjectURL(url);
+		setShowExportMenu(false);
+	};
+
 	const canProcess = (app: Application) => {
 		return app.evaluation.status === 'Ready for Processing';
 	};
 
 	const canRelease = (app: Application) => {
-		return app.processing?.status === 'Processed';
+		return (
+			app.processing?.status === 'Processed' &&
+			app.routing?.currentOffice === 'Accounting - Final Approval'
+		);
+	};
+
+	const getLoanTypeBadge = (loanType: string) => {
+		switch (loanType) {
+			case 'New':
+				return 'bg-green-100 text-green-700';
+			case 'Renewal':
+				return 'bg-blue-100 text-blue-700';
+			case 'Additional':
+				return 'bg-purple-100 text-purple-700';
+			case 'Refund':
+				return 'bg-orange-100 text-orange-700';
+			default:
+				return 'bg-gray-100 text-gray-700';
+		}
 	};
 
 	// Fetch to backend
@@ -561,7 +619,7 @@ function Dashboard() {
 				</header>
 
 				{/* Stats Cards */}
-				<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>
+				<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4 mb-6'>
 					<div className={`${cardClass} p-5`}>
 						<p className='text-xs uppercase tracking-wide text-gray-400'>
 							Total Applications
@@ -631,13 +689,79 @@ function Dashboard() {
 							{applications.filter((app) => app.processing?.released).length}
 						</h3>
 					</div>
+
+					<div className={`${cardClass} p-5`}>
+						<p className='text-xs uppercase tracking-wide text-gray-400'>
+							In Routing
+						</p>
+
+						<h3 className='text-3xl font-semibold'>
+							{
+								applications.filter(
+									(app) =>
+										app.routing?.currentOffice &&
+										app.routing.currentOffice !== 'Not Routed' &&
+										!app.processing?.released,
+								).length
+							}
+						</h3>
+					</div>
+
+					<div className={`${cardClass} p-5`}>
+						<p className='text-xs uppercase tracking-wide text-gray-400'>
+							Final Approval
+						</p>
+
+						<h3 className='text-3xl font-semibold'>
+							{
+								applications.filter(
+									(app) =>
+										app.routing?.currentOffice ===
+										'Accounting - Final Approval',
+								).length
+							}
+						</h3>
+					</div>
+				</div>
+
+				<div className={`${cardClass} p-5 mb-6`}>
+					<div className='flex items-center justify-between mb-4'>
+						<div>
+							<p className='text-xs uppercase tracking-wide text-gray-400'>
+								Routing Overview
+							</p>
+							<h2 className='text-lg font-semibold text-gray-800'>
+								Applications by Location
+							</h2>
+						</div>
+					</div>
+
+					<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3'>
+						{routingSteps.map((office) => {
+							const count = applications.filter(
+								(app) => app.routing?.currentOffice === office,
+							).length;
+
+							return (
+								<div
+									key={office}
+									className='rounded-2xl border border-gray-200 bg-gray-50 p-4'
+								>
+									<p className='text-xs text-gray-500'>{office}</p>
+									<h3 className='text-2xl font-semibold text-gray-800'>
+										{count}
+									</h3>
+								</div>
+							);
+						})}
+					</div>
 				</div>
 
 				{/* Application Cards */}
 				<div className={`${cardClass} p-4 sm:p-5 overflow-hidden`}>
 					<div className='flex justify-between items-center mb-4'>
 						<h2 className='text-lg font-semibold text-gray-800'>
-							Recent Applications
+							Applications
 						</h2>
 					</div>
 
@@ -671,164 +795,102 @@ function Dashboard() {
 
 						{error && <p className='text-sm text-red-600 mb-4'>{error}</p>}
 
-						<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 mb-4'>
-							<button
-								disabled={selectedIds.length === 0}
-								onClick={async () => {
-									const response = await fetch(
-										'http://localhost:5000/applications/export/monitoring/bulk',
-										{
-											method: 'POST',
-											headers: {
-												'Content-Type': 'application/json',
-											},
-											body: JSON.stringify({ ids: selectedIds }),
-										},
-									);
+						{selectedIds.length > 0 && (
+							<div className='mb-4 rounded-2xl border border-blue-100 bg-blue-50/70 p-4'>
+								<div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4'>
+									<div>
+										<p className='text-sm font-medium text-blue-700'>
+											{selectedIds.length} Applications Selected
+										</p>
 
-									const blob = await response.blob();
-									const url = window.URL.createObjectURL(blob);
+										<p className='text-xl font-bold text-blue-900'>
+											₱{selectedTotalAmount.toLocaleString('en-PH')}
+										</p>
 
-									const link = document.createElement('a');
-									link.href = url;
-									link.download = 'provident-monitoring-selected.xlsx';
-									link.click();
+										<p className='text-xs text-blue-600'>
+											Total Selected Amount
+										</p>
+									</div>
 
-									window.URL.revokeObjectURL(url);
-								}}
-								className={
-									selectedIds.length === 0
-										? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed w-full'
-										: 'bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition w-full'
-								}
-							>
-								Export Selected Monitoring ({selectedIds.length})
-							</button>
+									<div className='flex flex-col sm:flex-row gap-2'>
+										<div className='relative'>
+											<button
+												onClick={() => setShowExportMenu((prev) => !prev)}
+												className='w-full sm:w-auto rounded-full bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition'
+											>
+												Export Selected ▾
+											</button>
 
-							<button
-								disabled={selectedIds.length === 0}
-								onClick={async () => {
-									const response = await fetch(
-										'http://localhost:5000/applications/export/sl/bulk',
-										{
-											method: 'POST',
-											headers: {
-												'Content-Type': 'application/json',
-											},
-											body: JSON.stringify({ ids: selectedIds }),
-										},
-									);
+											{showExportMenu && (
+												<div className='absolute right-0 mt-2 w-56 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg z-30'>
+													<button
+														onClick={() =>
+															handleBulkExport(
+																'http://localhost:5000/applications/export/monitoring/bulk',
+																'provident-monitoring-selected.xlsx',
+															)
+														}
+														className='w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-gray-100'
+													>
+														Monitoring
+													</button>
 
-									const blob = await response.blob();
-									const url = window.URL.createObjectURL(blob);
+													<button
+														onClick={() =>
+															handleBulkExport(
+																'http://localhost:5000/applications/export/sl/bulk',
+																'sl-selected.xlsx',
+															)
+														}
+														className='w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-gray-100'
+													>
+														SL
+													</button>
 
-									const link = document.createElement('a');
-									link.href = url;
-									link.download = 'sl-selected.xlsx';
-									link.click();
+													<button
+														onClick={() =>
+															handleBulkExport(
+																'http://localhost:5000/applications/export/dv/bulk',
+																'dv-selected.zip',
+															)
+														}
+														className='w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-gray-100'
+													>
+														DV ZIP
+													</button>
 
-									window.URL.revokeObjectURL(url);
-								}}
-								className={
-									selectedIds.length === 0
-										? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed w-full'
-										: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition w-full'
-								}
-							>
-								Export Selected SL ({selectedIds.length})
-							</button>
+													<button
+														onClick={() =>
+															handleBulkExport(
+																'http://localhost:5000/applications/export/payroll/bulk',
+																'payroll.xlsx',
+															)
+														}
+														className='w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-gray-100'
+													>
+														Payroll
+													</button>
+												</div>
+											)}
+										</div>
 
-							<button
-								disabled={selectedIds.length === 0}
-								onClick={async () => {
-									const response = await fetch(
-										'http://localhost:5000/applications/export/dv/bulk',
-										{
-											method: 'POST',
-											headers: {
-												'Content-Type': 'application/json',
-											},
-											body: JSON.stringify({ ids: selectedIds }),
-										},
-									);
+										<button
+											onClick={() => setShowBulkRoutingModal(true)}
+											className='rounded-full border border-blue-200 bg-white px-4 py-2.5 text-sm font-medium text-blue-700 hover:bg-blue-50 transition'
+										>
+											Update Location
+										</button>
 
-									const blob = await response.blob();
-
-									const url = window.URL.createObjectURL(blob);
-
-									const link = document.createElement('a');
-									link.href = url;
-									link.download = 'dv-selected.zip';
-									link.click();
-
-									window.URL.revokeObjectURL(url);
-								}}
-								className={
-									selectedIds.length === 0
-										? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed w-full'
-										: 'bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition w-full'
-								}
-							>
-								Export Selected DV ({selectedIds.length})
-							</button>
-
-							<button
-								disabled={selectedIds.length === 0}
-								onClick={async () => {
-									const response = await fetch(
-										'http://localhost:5000/applications/export/payroll/bulk',
-										{
-											method: 'POST',
-											headers: {
-												'Content-Type': 'application/json',
-											},
-											body: JSON.stringify({ ids: selectedIds }),
-										},
-									);
-
-									const blob = await response.blob();
-									const url = window.URL.createObjectURL(blob);
-
-									const link = document.createElement('a');
-									link.href = url;
-									link.download = 'payroll.xlsx';
-									link.click();
-
-									window.URL.revokeObjectURL(url);
-								}}
-								className={
-									selectedIds.length === 0
-										? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed w-full'
-										: 'bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition w-full'
-								}
-							>
-								Export Selected Payroll ({selectedIds.length})
-							</button>
-
-							<button
-								disabled={selectedIds.length === 0}
-								onClick={() => setShowBulkRoutingModal(true)}
-								className={
-									selectedIds.length === 0
-										? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed w-full'
-										: 'bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 transition w-full'
-								}
-							>
-								Update Location ({selectedIds.length})
-							</button>
-
-							<button
-								disabled={selectedIds.length === 0}
-								onClick={() => setSelectedIds([])}
-								className={
-									selectedIds.length === 0
-										? 'bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed w-full'
-										: 'bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition w-full'
-								}
-							>
-								Clear Selected
-							</button>
-						</div>
+										<button
+											onClick={() => setSelectedIds([])}
+											className='rounded-full border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition'
+										>
+											Clear
+										</button>
+									</div>
+								</div>
+							</div>
+						)}
 
 						<div className='md:hidden space-y-3'>
 							{filteredApplications.length === 0 && (
@@ -966,7 +1028,24 @@ function Dashboard() {
 								<thead className='bg-gray-50/80'>
 									<tr>
 										<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
-											Select
+											<input
+												type='checkbox'
+												checked={
+													filteredApplications.length > 0 &&
+													filteredApplications.every((app) =>
+														selectedIds.includes(app._id),
+													)
+												}
+												onChange={(e) => {
+													if (e.target.checked) {
+														setSelectedIds(
+															filteredApplications.map((app) => app._id),
+														);
+													} else {
+														setSelectedIds([]);
+													}
+												}}
+											/>
 										</th>
 
 										<th className='px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>
@@ -1041,15 +1120,13 @@ function Dashboard() {
 											</td>
 
 											<td className='px-6 py-4'>
-												{app.loan.loanType === 'Refund' ? (
-													<span className='bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-medium'>
-														Refund
-													</span>
-												) : (
-													<span className='text-gray-700'>
-														{app.loan.loanType}
-													</span>
-												)}
+												<span
+													className={`px-3 py-1 rounded-full text-xs font-medium ${getLoanTypeBadge(
+														app.loan.loanType,
+													)}`}
+												>
+													{app.loan.loanType}
+												</span>
 											</td>
 
 											<td className='px-6 py-4 text-gray-700'>
@@ -1121,7 +1198,25 @@ function Dashboard() {
 											</td>
 
 											<td className='px-6 py-4'>
-												<span className='bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium'>
+												<span
+													className={
+														app.routing?.currentOffice === 'Legal'
+															? 'bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium'
+															: app.routing?.currentOffice === 'HR'
+																? 'bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium'
+																: app.routing?.currentOffice === 'Accounting'
+																	? 'bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-medium'
+																	: app.routing?.currentOffice === 'Admin'
+																		? 'bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-medium'
+																		: app.routing?.currentOffice ===
+																			  'Schools Division Superintendent'
+																			? 'bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-medium'
+																			: app.routing?.currentOffice ===
+																				  'Accounting - Final Approval'
+																				? 'bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-medium'
+																				: 'bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium'
+													}
+												>
 													{app.routing?.currentOffice || 'Not Routed'}
 												</span>
 											</td>
@@ -1606,6 +1701,28 @@ function Dashboard() {
 									<span className='bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium'>
 										{selectedApplication.routing?.currentOffice || 'Not Routed'}
 									</span>
+
+									<div className='mt-4 flex flex-wrap gap-2'>
+										{routingSteps.map((step) => {
+											const completed =
+												selectedApplication.routing?.history?.some(
+													(route) => route.office === step,
+												);
+
+											return (
+												<div
+													key={step}
+													className={
+														completed
+															? 'bg-green-100 text-green-700 px-3 py-2 rounded-full text-xs font-medium'
+															: 'bg-gray-100 text-gray-500 px-3 py-2 rounded-full text-xs font-medium'
+													}
+												>
+													{completed ? '✓' : '○'} {step}
+												</div>
+											);
+										})}
+									</div>
 								</div>
 
 								{selectedApplication.routing?.history?.length ? (
