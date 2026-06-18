@@ -1465,6 +1465,20 @@ function Dashboard() {
 										</p>
 									</div>
 
+									{/* Monthly Amort*/}
+									<div className='bg-white border border-gray-200 rounded-2xl p-4'>
+										<p className='text-xs uppercase tracking-wide text-gray-400'>
+											New Deduction
+										</p>
+
+										<p className='text-2xl font-semibold text-gray-800 mt-2'>
+											₱
+											{selectedApplication.evaluation.newDeduction.toLocaleString(
+												'en-PH',
+											)}
+										</p>
+									</div>
+
 									{/* Existing Balance */}
 									<div className='bg-white border border-gray-200 rounded-2xl p-4'>
 										<p className='text-xs uppercase tracking-wide text-gray-400'>
