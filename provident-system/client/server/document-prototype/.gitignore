@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Uploaded documents and generated OCR images
+uploads/
+processed/
+
+# Local secrets and configuration
+.env
+.env.*
+!.env.example
+
+# Locally downloaded OCR language data
+eng.traineddata
+
+# Build output
+dist/
