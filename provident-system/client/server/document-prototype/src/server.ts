@@ -8,6 +8,13 @@ import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { createCanvas } from '@napi-rs/canvas';
 import { createWorker } from 'tesseract.js';
 import sharp from 'sharp';
+import type {
+	DocumentType,
+	ProcessedDocument,
+	ExtractedApplicationData,
+} from './types/scan.types.js';
+
+import { classifyDocument } from './classifiers/document.classifier.js';
 
 const app = express();
 
@@ -29,158 +36,6 @@ const pdfJsWasmPath = path.join(
 );
 
 const pdfJsWasmUrl = pathToFileURL(pdfJsWasmPath + path.sep).href;
-
-type DocumentType =
-	| 'loan-application'
-	| 'authorization'
-	| 'payslip'
-	| 'loan-schedule'
-	| 'soa'
-	| 'unknown';
-
-type ProcessedDocument = {
-	page: number;
-	type: DocumentType;
-	text: string;
-};
-
-type ExtractedApplicationData = {
-	borrower: {
-		fullName: string;
-		employeeNumber: string;
-		school: string;
-		position: string;
-		salaryGrade: string;
-		salaryStep: string;
-		code: string;
-	};
-
-	coMaker: {
-		name: string;
-		employeeNumber: string;
-		contactNumber: string;
-	};
-
-	loan: {
-		loanAmount: string;
-		loanType: string;
-		purpose: string;
-		term: string;
-		accountNumber: string;
-	};
-
-	evaluation: {
-		netPay: string;
-		newDeduction: string;
-		existingDeduction: string;
-		existingBalance: string;
-		percentPrincipalPaid: string;
-	};
-
-	soa: {
-		checkNumber: string;
-		lastMonth: string;
-		balance: string;
-	};
-
-	verification: {
-		authorizationTerm: string;
-		termMatch: boolean | null;
-
-		soaLoanAmount: string;
-		loanAmountMatch: boolean | null;
-
-		soaBalance: string;
-		balanceMatch: boolean | null;
-
-		soaLoanGranted: string;
-		loanGrantedMatch: boolean | null;
-	};
-};
-
-function classifyDocument(text: string): DocumentType {
-	const t = text.toLowerCase();
-
-	// ----------------------------
-	// LOAN APPLICATION
-	// ----------------------------
-
-	if (
-		t.includes('provident fund') &&
-		(t.includes("borrower's information") ||
-			t.includes('borrower information')) &&
-		t.includes('co-maker')
-	) {
-		return 'loan-application';
-	}
-
-	// ----------------------------
-	// AUTHORIZATION
-	// ----------------------------
-
-	if (t.includes('authorization') && t.includes('salary deduction')) {
-		return 'authorization';
-	}
-
-	// ----------------------------
-	// PAYSLIP
-	// ----------------------------
-
-	// ----------------------------
-	// PAYSLIP
-	// ----------------------------
-
-	const payslipScore = [
-		'payroll slip',
-		'gross compensation',
-		'total deductions',
-		'basic salary',
-		'employee no',
-		'account no',
-		'grade',
-		'step',
-		'provident fund',
-	].filter((keyword) => t.includes(keyword)).length;
-
-	if (t.includes('payroll slip') || payslipScore >= 3) {
-		return 'payslip';
-	}
-
-	// ----------------------------
-	// LOAN SCHEDULE
-	// ----------------------------
-
-	const loanScheduleScore = [
-		'schedule of loan payments',
-		'amount still due',
-		'principal paid',
-		'check no',
-		'amortization',
-		'total loan',
-	].filter((keyword) => t.includes(keyword)).length;
-
-	if (t.includes('schedule of loan payments') || loanScheduleScore >= 3) {
-		return 'loan-schedule';
-	}
-
-	// ----------------------------
-	// SOA
-	// ----------------------------
-
-	const soaScore = [
-		'provident loan',
-		'total amount still due',
-		'loan requested',
-		'loan granted',
-		'updated soa',
-	].filter((keyword) => t.includes(keyword)).length;
-
-	if (soaScore >= 2) {
-		return 'soa';
-	}
-
-	return 'unknown';
-}
 
 function extractLoanApplicationFields(text: string): ExtractedApplicationData {
 	const result: ExtractedApplicationData = {
