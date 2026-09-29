@@ -76,7 +76,12 @@ export function extractPayslipFields(
 	);
 
 	if (accountNumberMatch) {
-		result.loan.accountNumber = accountNumberMatch[1];
+		result.verification.payslipAccountNumber = accountNumberMatch[1];
+		result.verification.accountNumberStatus = 'unverified';
+
+		// Do not populate the official account number until
+		// it has been independently verified.
+		result.loan.accountNumber = '';
 	}
 
 	// ----------------------------

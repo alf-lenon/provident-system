@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { createWorker } from 'tesseract.js';
-import { preprocessImage, recognizeImage } from './services/ocr.service.js';
+
 import type { ProcessedDocument } from './types/scan.types.js';
 
 import { classifyDocument } from './classifiers/document.classifier.js';
@@ -20,6 +20,18 @@ import { extractLoanScheduleFields } from './extractors/loanSchedule.extractor.j
 import { extractSoaFields } from './extractors/soa.extractor.js';
 
 import { loadPdf, renderPdfPage } from './services/pdf.service.js';
+
+import sharp from 'sharp';
+
+import {
+	preprocessImage,
+	recognizeImage,
+	recognizeImageRegion,
+} from './services/ocr.service.js';
+
+import { verifyAccountNumber } from './services/accountVerification.service.js';
+
+import { hasVisualContent } from './services/imageAnalysis.service.js';
 
 const app = express();
 
@@ -109,10 +121,56 @@ app.post('/scan', upload.single('document'), async (req, res) => {
 
 			const documentType = classifyDocument(text);
 
+			const hasOcrContent = text.replace(/\s/g, '').length >= 10;
+
+			const pageHasVisualContent = await hasVisualContent(imagePath);
+
+			const needsClassification =
+				documentType === 'unknown' && pageHasVisualContent;
+
+			if (documentType === 'payslip') {
+				const metadata = await sharp(imagePath).metadata();
+
+				if (metadata.width && metadata.height) {
+					const region = {
+						left: Math.round(metadata.width * 0.22),
+						top: Math.round(metadata.height * 0.12),
+						width: Math.round(metadata.width * 0.2),
+						height: Math.round(metadata.height * 0.035),
+					};
+					// Temporary local debugging only.
+					// Save the crop outside processedFolder because processedFolder
+					// is automatically deleted in finally.
+					const debugFolder = path.join(process.cwd(), 'debug-crops');
+
+					await fs.mkdir(debugFolder, {
+						recursive: true,
+					});
+
+					const debugCropPath = path.join(debugFolder, 'payslip-account.png');
+
+					await sharp(imagePath).extract(region).png().toFile(debugCropPath);
+
+					const accountRegionText = await recognizeImageRegion(
+						worker,
+						imagePath,
+						region,
+					);
+
+					await worker.setParameters({
+						tessedit_pageseg_mode: '3' as any,
+						tessedit_char_whitelist: '',
+					});
+				}
+			}
+
 			documents.push({
 				page: pageNumber,
 				type: documentType,
 				text,
+				hasOcrContent,
+				hasVisualContent: pageHasVisualContent,
+				needsClassification,
 			});
 		}
 
@@ -164,6 +222,8 @@ app.post('/scan', upload.single('document'), async (req, res) => {
 			extracted = extractSoaFields(soaDocument.text, extracted);
 		}
 
+		extracted = verifyAccountNumber(extracted);
+
 		return res.json({
 			message: 'PDF processed successfully.',
 
@@ -178,6 +238,9 @@ app.post('/scan', upload.single('document'), async (req, res) => {
 			documents: documents.map((document) => ({
 				page: document.page,
 				type: document.type,
+				hasOcrContent: document.hasOcrContent,
+				hasVisualContent: document.hasVisualContent,
+				needsClassification: document.needsClassification,
 			})),
 
 			extracted,

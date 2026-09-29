@@ -10,6 +10,9 @@ export type ProcessedDocument = {
 	page: number;
 	type: DocumentType;
 	text: string;
+	hasOcrContent: boolean;
+	hasVisualContent: boolean;
+	needsClassification: boolean;
 };
 
 export type ExtractedApplicationData = {
@@ -63,5 +66,12 @@ export type ExtractedApplicationData = {
 
 		soaLoanGranted: string;
 		loanGrantedMatch: boolean | null;
+
+		accountNumberStatus: 'unverified' | 'matched' | 'mismatch' | 'needs-review';
+		payslipAccountNumber: string;
+		atmAccountNumber: string;
+
+		atmCopyDetected: boolean;
+		accountNumberVerificationMethod: 'none' | 'cross-check' | 'manual';
 	};
 };

@@ -54,6 +54,13 @@ export function extractLoanApplicationFields(
 
 			soaLoanGranted: '',
 			loanGrantedMatch: null,
+
+			accountNumberStatus: 'unverified',
+			payslipAccountNumber: '',
+			atmAccountNumber: '',
+
+			atmCopyDetected: false,
+			accountNumberVerificationMethod: 'none',
 		},
 	};
 
