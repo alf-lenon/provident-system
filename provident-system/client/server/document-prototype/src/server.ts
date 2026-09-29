@@ -2,17 +2,10 @@ import express from 'express';
 import multer from 'multer';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { createCanvas } from '@napi-rs/canvas';
 import { createWorker } from 'tesseract.js';
-import sharp from 'sharp';
-import type {
-	DocumentType,
-	ProcessedDocument,
-	ExtractedApplicationData,
-} from './types/scan.types.js';
+import { preprocessImage, recognizeImage } from './services/ocr.service.js';
+import type { ProcessedDocument } from './types/scan.types.js';
 
 import { classifyDocument } from './classifiers/document.classifier.js';
 
@@ -26,6 +19,8 @@ import { extractLoanScheduleFields } from './extractors/loanSchedule.extractor.j
 
 import { extractSoaFields } from './extractors/soa.extractor.js';
 
+import { loadPdf, renderPdfPage } from './services/pdf.service.js';
+
 const app = express();
 
 const PORT = 5001;
@@ -37,15 +32,6 @@ const upload = multer({
 		fileSize: 15 * 1024 * 1024,
 	},
 });
-
-const pdfJsWasmPath = path.join(
-	process.cwd(),
-	'node_modules',
-	'pdfjs-dist',
-	'wasm',
-);
-
-const pdfJsWasmUrl = pathToFileURL(pdfJsWasmPath + path.sep).href;
 
 async function safelyDeleteFile(filePath: string) {
 	try {
@@ -85,14 +71,7 @@ app.post('/scan', upload.single('document'), async (req, res) => {
 			recursive: true,
 		});
 
-		const pdfBuffer = await fs.readFile(uploadedPdfPath);
-
-		const loadingTask = pdfjsLib.getDocument({
-			data: new Uint8Array(pdfBuffer),
-			wasmUrl: pdfJsWasmUrl,
-		});
-
-		const pdf = await loadingTask.promise;
+		const pdf = await loadPdf(uploadedPdfPath);
 
 		if (pdf.numPages > MAX_PAGES) {
 			return res.status(400).json({
@@ -107,28 +86,9 @@ app.post('/scan', upload.single('document'), async (req, res) => {
 		for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
 			const page = await pdf.getPage(pageNumber);
 
-			const viewport = page.getViewport({
-				scale: 2.5,
-			});
-
-			const canvas = createCanvas(
-				Math.ceil(viewport.width),
-				Math.ceil(viewport.height),
-			);
-
-			const context = canvas.getContext('2d');
-
-			await page.render({
-				canvas: canvas as any,
-				canvasContext: context as any,
-				viewport,
-			}).promise;
-
 			const imagePath = path.join(processedFolder, `page-${pageNumber}.png`);
 
-			const pngBuffer = canvas.toBuffer('image/png');
-
-			await fs.writeFile(imagePath, pngBuffer);
+			await renderPdfPage(page, imagePath);
 
 			// ----------------------------
 			// IMAGE PREPROCESSING
@@ -139,20 +99,13 @@ app.post('/scan', upload.single('document'), async (req, res) => {
 				`page-${pageNumber}-enhanced.png`,
 			);
 
-			await sharp(imagePath)
-				.grayscale()
-				.normalize()
-				.sharpen()
-				.png()
-				.toFile(enhancedImagePath);
+			await preprocessImage(imagePath, enhancedImagePath);
 
 			// ----------------------------
 			// OCR ENHANCED IMAGE
 			// ----------------------------
 
-			const {
-				data: { text },
-			} = await worker.recognize(enhancedImagePath);
+			const text = await recognizeImage(worker, enhancedImagePath);
 
 			const documentType = classifyDocument(text);
 
@@ -211,8 +164,6 @@ app.post('/scan', upload.single('document'), async (req, res) => {
 			extracted = extractSoaFields(soaDocument.text, extracted);
 		}
 
-		const page5Document = documents.find((document) => document.page === 5);
-
 		return res.json({
 			message: 'PDF processed successfully.',
 
@@ -230,8 +181,6 @@ app.post('/scan', upload.single('document'), async (req, res) => {
 			})),
 
 			extracted,
-
-			page5OcrText: page5Document?.text ?? '',
 		});
 	} catch (error) {
 		console.error('PDF processing failed:', error);
