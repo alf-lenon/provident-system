@@ -104,36 +104,5 @@ export function extractPayslipFields(
 		result.evaluation.netPay = directNetPayMatch[1].replace(/,/g, '');
 	}
 
-	// ----------------------------
-	// NET PAY FALLBACK
-	//
-	// OCR:
-	// 1st Half Pay: eo. 3865.00
-	// 28d Half Fay : 3,467.89
-	//
-	// Monthly net pay =
-	// first half + second half
-	// ----------------------------
-
-	if (!result.evaluation.netPay) {
-		const firstHalfMatch = text.match(
-			/1st\s+Half\s+(?:Pay|Fay)[^0-9]{0,20}([\d,]+\.\d{2})/i,
-		);
-
-		const secondHalfMatch = text.match(
-			/(?:2nd|28d)\s+Half\s+(?:Pay|Fay)[^0-9]{0,20}([\d,]+\.\d{2})/i,
-		);
-
-		if (firstHalfMatch && secondHalfMatch) {
-			const firstHalf = Number(firstHalfMatch[1].replace(/,/g, ''));
-
-			const secondHalf = Number(secondHalfMatch[1].replace(/,/g, ''));
-
-			if (Number.isFinite(firstHalf) && Number.isFinite(secondHalf)) {
-				result.evaluation.netPay = (firstHalf + secondHalf).toFixed(2);
-			}
-		}
-	}
-
 	return result;
 }
