@@ -15,6 +15,13 @@ export type ProcessedDocument = {
 	needsClassification: boolean;
 };
 
+export type ScanWarning = {
+	field: string;
+	code: string;
+	message: string;
+	severity: 'review' | 'error';
+};
+
 export type ExtractedApplicationData = {
 	borrower: {
 		fullName: string;
@@ -73,5 +80,10 @@ export type ExtractedApplicationData = {
 
 		atmCopyDetected: boolean;
 		accountNumberVerificationMethod: 'none' | 'cross-check' | 'manual';
+
+		newDeductionStatus: 'unverified' | 'verified' | 'needs-review';
+		newDeductionSource: 'authorization' | 'manual' | '';
 	};
+
+	warnings: ScanWarning[];
 };

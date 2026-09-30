@@ -61,7 +61,12 @@ export function extractLoanApplicationFields(
 
 			atmCopyDetected: false,
 			accountNumberVerificationMethod: 'none',
+
+			newDeductionStatus: 'unverified',
+			newDeductionSource: '',
 		},
+
+		warnings: [],
 	};
 
 	const loanAmountMatch = text.match(

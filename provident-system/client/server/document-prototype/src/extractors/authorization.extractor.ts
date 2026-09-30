@@ -12,6 +12,9 @@ export function extractAuthorizationFields(
 
 	if (deductionMatch) {
 		result.evaluation.newDeduction = deductionMatch[1].replace(/,/g, '');
+
+		result.verification.newDeductionStatus = 'needs-review';
+		result.verification.newDeductionSource = 'authorization';
 	}
 
 	const authorizationTermMatch = text.match(

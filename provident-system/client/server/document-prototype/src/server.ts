@@ -33,6 +33,8 @@ import { verifyAccountNumber } from './services/accountVerification.service.js';
 
 import { hasVisualContent } from './services/imageAnalysis.service.js';
 
+import { generateScanWarnings } from './services/scanReview.service.js';
+
 const app = express();
 
 const PORT = 5001;
@@ -223,6 +225,8 @@ app.post('/scan', upload.single('document'), async (req, res) => {
 		}
 
 		extracted = verifyAccountNumber(extracted);
+
+		extracted.warnings = generateScanWarnings(extracted, documents);
 
 		return res.json({
 			message: 'PDF processed successfully.',
